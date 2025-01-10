@@ -3,13 +3,20 @@ package model
 import "time"
 
 type Message struct {
-	Id       uint      `json:"id"`
-	Content  string    `json:"content"`
-	Owner    uint      `json:"owner"`
-	CreateAt time.Time `json:"create_at,omitempty"`
-	UpdateAt time.Time `json:"update_at,omitempty"`
+	Id        uint      `gorm:"primaryKey" json:"id"`
+	Content   string    `json:"content"`
+	OwnerId   uint      `json:"owner_id"`
+	RoomId    uint      `json:"room_id"`
+	CreatedAt time.Time `json:"created_at,omitempty"`
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
 }
 
-func NewMessage() *Message {
-	return &Message{}
+func NewMessage(ownerId uint, roomId uint, content string) *Message {
+	return &Message{
+		OwnerId:   ownerId,
+		Content:   content,
+		RoomId:    roomId,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
 }
