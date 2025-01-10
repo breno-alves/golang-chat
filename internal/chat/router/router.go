@@ -2,6 +2,8 @@ package router
 
 import (
 	"chatroom/api/chat/handler"
+	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
@@ -11,17 +13,19 @@ import (
 	"net/http"
 )
 
-type RequestHandlerFunction func(db *gorm.DB, w http.ResponseWriter, r *http.Request)
+type RequestHandlerFunction func(ctx context.Context, db *gorm.DB, cache *redis.Client, w http.ResponseWriter, r *http.Request)
 
 type Router struct {
 	Router *mux.Router
 	Db     *gorm.DB
+	Cache  *redis.Client
 }
 
 func NewRouter(db *gorm.DB, cache *redis.Client) *Router {
 	r := &Router{
 		Router: mux.NewRouter(),
 		Db:     db,
+		Cache:  cache,
 	}
 	r.initialize()
 	return r
@@ -36,14 +40,14 @@ func (router *Router) initialize() {
 	// USER ROUTES
 	router.Post("/user", router.handleRequest(handler.SignUp))
 
-	// ROOM ROUTES
-	router.Get("/room", router.handleRequest(handler.ListRooms))
-	router.Post("/room", router.handleRequest(handler.CreateRoom))
-	router.Post("/room/join", router.handleRequest(handler.JoinRoom))
-
-	// MESSAGES ROUTES
-	router.Get("/room/{room_id}", router.handleRequest(handler.ListMessage))
-	router.Post("/room/message", router.handleRequest(handler.CreateMessage))
+	//// ROOM ROUTES
+	//router.Get("/room", router.handleRequest(handler.ListRooms))
+	//router.Post("/room", router.handleRequest(handler.CreateRoom))
+	//router.Post("/room/join", router.handleRequest(handler.JoinRoom))
+	//
+	//// MESSAGES ROUTES
+	//router.Get("/room/{room_id}", router.handleRequest(handler.ListMessage))
+	//router.Post("/room/message", router.handleRequest(handler.CreateMessage))
 }
 
 // Get wraps the router for GET method
@@ -75,9 +79,16 @@ func (router *Router) Ws(path string, f func(w http.ResponseWriter, r *http.Requ
 }
 
 func (router *Router) handleRequest(handler RequestHandlerFunction) http.HandlerFunc {
+	ctx := context.Background()
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS,PUT")
+		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type")
 		w.Header().Set("Content-Type", "application/json")
-		handler(router.Db, w, r)
+		if r.Method == "OPTIONS" {
+			return
+		}
+		handler(ctx, router.Db, router.Cache, w, r)
 	}
 }
 
@@ -95,23 +106,29 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	defer func() {
 		err := conn.Close()
 		if err != nil {
-			fmt.Println("Error closing connection:", err)
+			slog.Debug("closing websocket connection")
 		}
 	}()
 
-	// Listen for incoming messages
 	for {
-		// Read message from the client
-		_, message, err := conn.ReadMessage()
+		_, buff, err := conn.ReadMessage()
 		if err != nil {
-			fmt.Println("Error reading message:", err)
+			slog.Error(err.Error())
 			break
 		}
-		fmt.Printf("Received: %s\\n", message)
-		// Echo the message back to the client
-		if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
-			fmt.Println("Error writing message:", err)
+
+		var message WebsocketMessage
+		err = json.Unmarshal(buff, &message)
+		if err != nil {
+			slog.Error(err.Error())
 			break
 		}
+		fmt.Println(message)
+		//
+		//fmt.Printf("Received: %s\\n", message)
+		//if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
+		//	slog.Error(err.Error())
+		//	break
+		//}
 	}
 }

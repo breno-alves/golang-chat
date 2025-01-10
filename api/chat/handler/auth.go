@@ -2,7 +2,9 @@ package handler
 
 import (
 	"chatroom/internal/chat/service"
+	"context"
 	"encoding/json"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"net/http"
 )
@@ -12,7 +14,7 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-func Login(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
+func Login(_ context.Context, db *gorm.DB, _ *redis.Client, w http.ResponseWriter, r *http.Request) {
 	body := new(LoginRequest)
 	err := json.NewDecoder(r.Body).Decode(body)
 	if err != nil {
@@ -29,5 +31,6 @@ func Login(db *gorm.DB, w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+
+	json.NewEncoder(w).Encode(user)
 }

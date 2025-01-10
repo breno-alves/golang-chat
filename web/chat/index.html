@@ -4,48 +4,197 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WebSocket Client</title>
+    <style>
+        .wrapper {
+            display: flex;
+            justify-content: center;
+            align-content: center;
+            width: 100%;
+            height: 100%;
+        }
+
+        .container {
+            width: 1024px;
+            height: 1024px;
+        }
+
+        .account-container {
+            display: flex;
+            justify-content: space-between;
+            padding-bottom: 32px;
+            border-bottom: 1px solid black;
+        }
+
+        .sub-container {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .chat {
+
+            width: 60%;
+        }
+
+        .messages {
+            width: 100%;
+            height: 100%;
+            border: 3px solid red;
+            padding: 32px;
+        }
+
+        .message {
+            width: 100%;
+            border: 6px solid blue;
+            margin: 8px;
+        }
+
+        .rooms {
+            width: 33%;
+            height: 100%;
+            background-color: black;
+        }
+    </style>
 </head>
 <body>
-<h1>WebSocket Client</h1>
-<div>
-    <input type="text" id="messageInput" placeholder="Enter your message">
-    <button onclick="sendMessage()">Send</button>
+<div class="wrapper">
+    <div class="container">
+        <div class="account-container">
+            <div class="login">
+                <h3>Login</h3>
+
+                <label>
+                    Username:
+                    <input type="text" id="login-username"/>
+                </label>
+
+                <label>
+                    Password:
+                    <input type="password" id="login-password"/>
+                </label>
+
+                <button onclick="login()">Submit</button>
+            </div>
+            <div class="register">
+                <h3>Register</h3>
+                <label>
+                    Username:
+                    <input type="text" id="signup-username"/>
+                </label>
+
+                <label>
+                    Password:
+                    <input type="password" id="signup-password"/>
+                </label>
+                <button onclick="signup()">Submit</button>
+            </div>
+        </div>
+
+        <div class="sub-container">
+            <div class="chat">
+                <div class="messages">
+                    <div class="message">
+                        <p>Owner</p>
+                        <p>content</p>
+                    </div>
+                    <div class="message">
+                        <p>Owner</p>
+                        <p>content</p>
+                    </div>
+                </div>
+                <div>
+                    <input/>
+                    <button>Submit</button>
+                </div>
+            </div>
+            <div class="rooms">
+                <ol>
+                    <li>test</li>
+                </ol>
+            </div>
+        </div>
+    </div>
 </div>
-<div id="messages"></div>
+<!--<h1>WebSocket Client</h1>-->
+<!--<div>-->
+<!--    <input type="text" id="messageInput" placeholder="Enter your message">-->
+<!--    <button onclick="sendMessage()">Send</button>-->
+<!--</div>-->
+<!--<div id="messages"></div>-->
 
 <script>
-    let ws;
+  // using email as token to simplify project
+  let token = null;
+  let ws = null;
 
-    function connect() {
-        ws = new WebSocket("ws://localhost:8080/ws");
+  function login() {
+    const username = document.querySelector("#login-username").value;
+    const password = document.querySelector("#login-password").value;
 
-        ws.onopen = function() {
-            console.log("Connected to WebSocket server");
-        };
+    fetch("http://localhost:8080/auth/login", {
+      method: 'POST',
+      body: JSON.stringify(
+        {
+          username: username,
+          password: password,
+        }
+      ),
+    })
+    .then((response) => response.json())
+    .then((data) => {
+      token = data.username;
+    });
+  }
 
-        ws.onmessage = function(event) {
-            let messageDisplay = document.getElementById("messages");
-            messageDisplay.innerHTML += `<p>${event.data}</p>`;
-        };
+  function signup() {
+    const username = document.querySelector("#signup-username").value;
+    const password = document.querySelector("#signup-password").value;
 
-        ws.onclose = function() {
-            console.log("WebSocket connection closed, retrying...");
-            setTimeout(connect, 1000); // Reconnect after 1 second
-        };
+    fetch("http://localhost:8080/user", {
+      method: 'POST',
+      body: JSON.stringify(
+        {
+          username: username,
+          password: password,
+        }
+      ),
+    })
+    .then((response) => response.json())
+    .then((data) => {
+      token = data.username;
+    });
+  }
 
-        ws.onerror = function(error) {
-            console.error("WebSocket error:", error);
-        };
-    }
 
-    function sendMessage() {
-        let input = document.getElementById("messageInput");
-        let message = input.value;
-        ws.send(message);
-        input.value = "";
-    }
+  function connect() {
+    ws = new WebSocket("ws://localhost:8080/ws");
 
-    connect();
+    ws.onopen = function () {
+      console.log("Connected to WebSocket server");
+    };
+
+    ws.onmessage = function (event) {
+      let messageDisplay = document.getElementById("messages");
+      messageDisplay.innerHTML += `<p>${event.data}</p>`;
+    };
+
+    ws.onclose = function () {
+      console.log("WebSocket connection closed, retrying...");
+      setTimeout(connect, 1000); // Reconnect after 1 second
+    };
+
+    ws.onerror = function (error) {
+      console.error("WebSocket error:", error);
+    };
+  }
+
+  function sendMessage() {
+    let input = document.getElementById("messageInput");
+    let message = input.value;
+    ws.send(message);
+    input.value = "";
+  }
+
+  // connect();
 </script>
 </body>
 </html>

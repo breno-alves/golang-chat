@@ -33,7 +33,7 @@ func GetConfig() *Config {
 			Charset:  "utf8",
 		},
 		Cache: &Cache{
-			Host:     "localhost",
+			Host:     "localhost:6379",
 			Password: "",
 			Db:       0,
 		},
