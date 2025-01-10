@@ -39,15 +39,6 @@ func (router *Router) initialize() {
 
 	// USER ROUTES
 	router.Post("/user", router.handleRequest(handler.SignUp))
-
-	//// ROOM ROUTES
-	//router.Get("/room", router.handleRequest(handler.ListRooms))
-	//router.Post("/room", router.handleRequest(handler.CreateRoom))
-	//router.Post("/room/join", router.handleRequest(handler.JoinRoom))
-	//
-	//// MESSAGES ROUTES
-	//router.Get("/room/{room_id}", router.handleRequest(handler.ListMessage))
-	//router.Post("/room/message", router.handleRequest(handler.CreateMessage))
 }
 
 // Get wraps the router for GET method
