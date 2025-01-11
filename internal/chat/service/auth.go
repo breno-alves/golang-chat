@@ -14,12 +14,18 @@ func CheckPasswordHash(hash, password string) bool {
 	return hash == password
 }
 
-func CheckToken(ctx context.Context, cache *redis.Client, token string) (string, error) {
-	username, err := cache.Get(ctx, token).Result()
+func ValidateUserToken(ctx context.Context, cache *redis.Client, token string) (*model.User, error) {
+	key := fmt.Sprintf("user:%s", token)
+	data, err := cache.Get(ctx, key).Result()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	return username, nil
+	user := &model.User{}
+	err = json.Unmarshal([]byte(data), user)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }
 
 func SetUserToken(ctx context.Context, cache *redis.Client, user *model.User) (string, error) {

@@ -40,6 +40,9 @@ func (router *Router) initialize() {
 	// USER ROUTES
 	router.Post("/user", router.handleRestRequest(handler.SignUp))
 
+	// ROOM ROUTES
+	router.Get("/rooms", router.handleRestRequest(handler.ListRooms))
+
 	// WS ROUTES
 	router.Ws("/ws", router.handleWsRequest(wsHandler))
 }

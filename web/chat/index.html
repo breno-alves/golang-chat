@@ -53,10 +53,17 @@
         .rooms {
             width: 33%;
             height: 100%;
-            background-color: black;
+            border: 1px solid grey;
+            /*background-color: black;*/
+        }
+
+        #rooms-list li {
+            display: flex;
+            justify-content: space-around;
         }
     </style>
 </head>
+
 <body>
 <div class="wrapper">
     <div class="container">
@@ -95,6 +102,7 @@
             <div class="chat">
                 <!-- CONTAINER TO DISPLAY NEW MESSAGES -->
                 <div class="messages">
+                    <h1>please connect to a room first</h1>
                 </div>
                 <!-- END -->
                 <div>
@@ -103,32 +111,33 @@
                 </div>
             </div>
             <div class="rooms">
-                <ol>
-                    <li>test</li>
+                <h1>Room list:</h1>
+                <!-- LIST TO DISPLAY ROOMS -->
+                <ol id="rooms-list">
+                    <h1>please log in first</h1>
                 </ol>
+                <!-- END -->
             </div>
         </div>
     </div>
 </div>
-<!--<h1>WebSocket Client</h1>-->
-<!--<div>-->
-<!--    <input type="text" id="messageInput" placeholder="Enter your message">-->
-<!--    <button onclick="sendMessage()">Send</button>-->
-<!--</div>-->
-<!--<div id="messages"></div>-->
 
 <script>
   const ACTIONS = {
-    CREATE_ROOM: "CREATE_ROOM",
-    JOIN_ROOM: "JOIN_ROOM",
     LEAVE_ROOM: "LEAVE_ROOM",
     SEND_MESSAGE: "SEND_MESSAGE"
   };
 
-  // let token = null;
-  let token = "1435a686-32cc-4227-85cc-deea1928ca7f"
+  let token = null;
   let currentRoom = 1;
   let ws = null;
+
+  function listRooms() {
+    return fetch("http://localhost:8080/rooms", {
+      method: "GET"
+    })
+      .then((response) => response.json())
+  }
 
   function login() {
     const username = document.querySelector("#login-username").value;
@@ -145,8 +154,10 @@
     })
       .then((response) => response.json())
       .then((data) => {
-        token = data.username;
-      });
+        token = data.token;
+      })
+      .then(() => listRooms())
+      .then((rooms) => renderRooms(rooms));
   }
 
   function signup() {
@@ -163,9 +174,6 @@
       ),
     })
       .then((response) => response.json())
-      .then((data) => {
-        token = data.username;
-      });
   }
 
   function sendMessage() {
@@ -175,7 +183,7 @@
     input.value = "";
   }
 
-  function newMessage(message) {
+  function renderMessage(message) {
     let messageDisplay = document.querySelector(".messages");
     messageDisplay.insertAdjacentHTML("beforeend", `
           <div class="message">
@@ -185,15 +193,40 @@
         `);
   }
 
+  function renderRooms(rooms) {
+    let roomsDisplay = document.querySelector("#rooms-list");
+    roomsDisplay.innerHTML = "";
+    roomsDisplay.insertAdjacentHTML("beforeend", rooms.reduce((acc, room) => {
+      const li = `
+        <li>
+            <p>${room.id}</p>
+            <button onclick="joinRoom(${room.id})">Join</button>
+        </li>
+      `
+      return acc + li;
+    }, ""));
+  }
+
+  function clearMessages() {
+    let messageDisplay = document.querySelector(".messages");
+    messageDisplay.innerHTML = "";
+  }
+
+  function joinRoom(roomId) {
+    currentRoom = roomId;
+    connect();
+    clearMessages();
+  }
+
   function connect() {
-    ws = new WebSocket("ws://localhost:8080/ws");
+    ws = new WebSocket(`ws://localhost:8080/ws?token=${token}&room_id=${currentRoom}`);
 
     ws.onopen = function () {
       console.log("Connected to WebSocket server");
     };
 
     ws.onmessage = function (event) {
-      newMessage(JSON.parse(event.data));
+      renderMessage(JSON.parse(event.data));
     };
 
     ws.onclose = function () {
@@ -216,7 +249,11 @@
   }
 
 
-  connect();
+  function init() {
+
+  }
+
+  init();
 </script>
 </body>
 </html>

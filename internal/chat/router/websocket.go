@@ -5,11 +5,13 @@ import (
 	"chatroom/internal/chat/service"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"sync"
 )
 
@@ -17,7 +19,6 @@ import (
 // key => user:token => { username, activeRoom, ... }
 
 const (
-	JoinRoom    = "JOIN_ROOM"
 	LeaveRoom   = "LEAVE_MESSAGE"
 	SendMessage = "SEND_MESSAGE"
 )
@@ -28,12 +29,8 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-var connections = make(map[*websocket.Conn]bool)
-var clients = make(map[string]*Client)
+var connections = make(map[string]*websocket.Conn)
 var mutex = &sync.Mutex{}
-
-var rooms = make(map[uint][]*Client)
-var roomBroadcast = make(map[uint]chan []byte)
 
 // Start websocket connection steps
 // - Send token in query parameters to authorize
@@ -42,6 +39,7 @@ var roomBroadcast = make(map[uint]chan []byte)
 
 // Connect to room
 // At this point we could re-validate token, but I don't think it's necessary
+// room:id:user:username
 // Update room list (watch out for race conditions in this resource) <-- this could be a Set to prevent duplication
 // Update user active room property
 
@@ -55,6 +53,38 @@ var roomBroadcast = make(map[uint]chan []byte)
 // - update ui
 
 func wsHandler(ctx context.Context, db *gorm.DB, cache *redis.Client, w http.ResponseWriter, r *http.Request) {
+	token := r.URL.Query().Get("token")
+	if token == "" {
+		slog.Error("token required")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	ctx = context.WithValue(ctx, "token", token)
+
+	user, err := service.ValidateUserToken(ctx, cache, token)
+	if err != nil {
+		slog.Error("could not validate token")
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	ctx = context.WithValue(ctx, "user", user)
+
+	a := r.URL.Query().Get("room_id")
+	roomId, err := strconv.Atoi(a)
+	if err != nil {
+		slog.Error("could not parse room_id")
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	room, err := service.FindRoomById(db, uint(roomId))
+	if err != nil {
+		slog.Error("could not find room")
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	ctx = context.WithValue(ctx, "room", room)
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		slog.Error("error upgrading connection", err.Error())
@@ -63,9 +93,10 @@ func wsHandler(ctx context.Context, db *gorm.DB, cache *redis.Client, w http.Res
 	go handleConnection(ctx, db, cache, conn)
 }
 
-func closeClientConnection(conn *websocket.Conn) {
+func closeClientConnection(ctx context.Context, conn *websocket.Conn) {
+	token := ctx.Value("token").(string)
 	mutex.Lock()
-	connections[conn] = false
+	connections[token] = conn
 	mutex.Unlock()
 	err := conn.Close()
 	if err != nil {
@@ -73,23 +104,37 @@ func closeClientConnection(conn *websocket.Conn) {
 	}
 }
 
-func broadcastMessage(message *model.Message) {
-	for conn, active := range connections {
-		if active {
-			err := conn.WriteJSON(message)
-			if err != nil {
-				slog.Error("error sending message to client", err.Error())
-			}
+func broadcastMessage(ctx context.Context, cache *redis.Client, message *model.Message) error {
+	slog.Debug("broadcasting message")
+	iter := cache.Scan(ctx, 0, fmt.Sprintf("room:%d:user:*", message.RoomId), 0).Iterator()
+	for iter.Next(ctx) {
+		k := iter.Val()
+		token, _ := cache.Get(ctx, k).Result()
+		conn := connections[token]
+		err := conn.WriteJSON(message)
+		if err != nil {
+			slog.Error("error sending message", err.Error())
 		}
 	}
+	if err := iter.Err(); err != nil {
+		return err
+	}
+	return nil
 }
 
 func handleConnection(ctx context.Context, db *gorm.DB, cache *redis.Client, conn *websocket.Conn) {
-	defer closeClientConnection(conn)
+	defer closeClientConnection(ctx, conn)
+	token := ctx.Value("token").(string)
 
 	mutex.Lock()
-	connections[conn] = true
+	connections[token] = conn
 	mutex.Unlock()
+
+	err := service.JoinRoom(ctx, db, cache)
+	if err != nil {
+		slog.Error("error joining room", err.Error())
+		return
+	}
 
 	for {
 		_, message, err := conn.ReadMessage()
@@ -106,15 +151,13 @@ func handleConnection(ctx context.Context, db *gorm.DB, cache *redis.Client, con
 			break
 		}
 
-		// if token is invalid/expired we should disconnect user
-		username, err := service.CheckToken(ctx, cache, msg.Token)
+		user, err := service.ValidateUserToken(ctx, cache, msg.Token)
 		if err != nil {
 			slog.Error("error checking token:", err.Error())
 			break
 		}
 
 		switch msg.Action {
-		case JoinRoom:
 		case LeaveRoom:
 		case SendMessage:
 			sendMessagePayload := &WebsocketMessageSendMessage{}
@@ -123,12 +166,12 @@ func handleConnection(ctx context.Context, db *gorm.DB, cache *redis.Client, con
 				slog.Error("error unmarshalling message:", err.Error())
 				break
 			}
-			clientMessage, err := service.CreateMessage(db, sendMessagePayload.Payload.Room, username, sendMessagePayload.Payload.Content)
+			clientMessage, err := service.CreateMessage(db, sendMessagePayload.Payload.Room, user.Username, sendMessagePayload.Payload.Content)
 			if err != nil {
 				slog.Error("error creating message:", err.Error())
 				break
 			}
-			broadcastMessage(clientMessage)
+			_ = broadcastMessage(ctx, cache, clientMessage)
 			break
 		}
 
