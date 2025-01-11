@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
+	"log/slog"
 	"net/http"
 )
 
@@ -14,30 +15,29 @@ type SignUpRequest struct {
 	Password string `json:"password"`
 }
 
-type SignUpResponse struct {
-	Token string `json:"token"`
-}
+func SignUp(_ context.Context, db *gorm.DB, _ *redis.Client, w http.ResponseWriter, r *http.Request) {
+	slog.Debug("attempting to sign up user")
 
-func SignUp(ctx context.Context, db *gorm.DB, cache *redis.Client, w http.ResponseWriter, r *http.Request) {
 	body := new(SignUpRequest)
 	err := json.NewDecoder(r.Body).Decode(body)
 	if err != nil {
+		slog.Error("failed to decode body", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
 	user, err := service.CreateUser(db, body.Username, body.Password)
 	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
-	token, err := service.SetToken(ctx, cache, user.Username)
-	if err != nil {
+		slog.Error("failed to create user", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	if err := json.NewEncoder(w).Encode(&SignUpResponse{Token: token}); err != nil {
-		w.WriteHeader(http.StatusBadRequest)
+	err = json.NewEncoder(w).Encode(user)
+	if err != nil {
+		slog.Error("failed to encode response", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	slog.Debug("successfully created user")
 }

@@ -29,3 +29,7 @@ func (router *Router) Delete(path string, f func(w http.ResponseWriter, r *http.
 	slog.Info(fmt.Sprintf("DELETE %s", path))
 	router.Router.HandleFunc(path, f).Methods("DELETE")
 }
+
+func (router *Router) Ws(path string, f func(w http.ResponseWriter, r *http.Request)) {
+	router.Router.HandleFunc(path, f)
+}

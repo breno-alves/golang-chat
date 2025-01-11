@@ -13,33 +13,13 @@ import (
 	"sync"
 )
 
-type Client struct {
-	conn *websocket.Conn
-	user *model.User
-}
-
-type ActionType string
-
-type WebsocketMessage struct {
-	Action ActionType `json:"action"`
-	Token  string     `json:"token"`
-}
-
-type WebsocketMessageSendMessage struct {
-	WebsocketMessage
-	Payload SendMessagePayload `json:"payload"`
-}
-
-type SendMessagePayload struct {
-	Content string `json:"content"`
-	Room    uint   `json:"room"`
-}
+// key => room:uuid value => { ...user tokens }
+// key => user:token => { username, activeRoom, ... }
 
 const (
-	CreateRoom  ActionType = "CREATE_ROOM"
-	JoinRoom               = "JOIN_ROOM"
-	LeaveRoom              = "LEAVE_MESSAGE"
-	SendMessage            = "SEND_MESSAGE"
+	JoinRoom    = "JOIN_ROOM"
+	LeaveRoom   = "LEAVE_MESSAGE"
+	SendMessage = "SEND_MESSAGE"
 )
 
 var upgrader = websocket.Upgrader{
@@ -48,15 +28,31 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-var clients = make(map[*websocket.Conn]bool)
+var connections = make(map[*websocket.Conn]bool)
+var clients = make(map[string]*Client)
 var mutex = &sync.Mutex{}
 
 var rooms = make(map[uint][]*Client)
 var roomBroadcast = make(map[uint]chan []byte)
 
-func (router *Router) Ws(path string, f func(w http.ResponseWriter, r *http.Request)) {
-	router.Router.HandleFunc(path, f)
-}
+// Start websocket connection steps
+// - Send token in query parameters to authorize
+// - if token is valid we upgrade connection, if not refuse
+// - Change token property in redis to connected but no room so far
+
+// Connect to room
+// At this point we could re-validate token, but I don't think it's necessary
+// Update room list (watch out for race conditions in this resource) <-- this could be a Set to prevent duplication
+// Update user active room property
+
+// Leave room
+// Update room list
+// Update user active room property
+
+// Send message
+// - Validate token
+// - Retrieve all connected users in room and broadcast message
+// - update ui
 
 func wsHandler(ctx context.Context, db *gorm.DB, cache *redis.Client, w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -64,21 +60,35 @@ func wsHandler(ctx context.Context, db *gorm.DB, cache *redis.Client, w http.Res
 		slog.Error("error upgrading connection", err.Error())
 		return
 	}
-
 	go handleConnection(ctx, db, cache, conn)
 }
 
-func handleConnection(ctx context.Context, db *gorm.DB, cache *redis.Client, conn *websocket.Conn) {
-	defer func() {
-		err := conn.Close()
-		if err != nil {
-			slog.Error("error closing connection", err.Error())
+func closeClientConnection(conn *websocket.Conn) {
+	mutex.Lock()
+	connections[conn] = false
+	mutex.Unlock()
+	err := conn.Close()
+	if err != nil {
+		slog.Error("error closing connection", err.Error())
+	}
+}
+
+func broadcastMessage(message *model.Message) {
+	for conn, active := range connections {
+		if active {
+			err := conn.WriteJSON(message)
+			if err != nil {
+				slog.Error("error sending message to client", err.Error())
+			}
 		}
-		delete(clients, conn)
-	}()
+	}
+}
+
+func handleConnection(ctx context.Context, db *gorm.DB, cache *redis.Client, conn *websocket.Conn) {
+	defer closeClientConnection(conn)
 
 	mutex.Lock()
-	clients[conn] = true
+	connections[conn] = true
 	mutex.Unlock()
 
 	for {
@@ -104,13 +114,6 @@ func handleConnection(ctx context.Context, db *gorm.DB, cache *redis.Client, con
 		}
 
 		switch msg.Action {
-		case CreateRoom:
-			_, err = service.CreateRoom(db)
-			if err != nil {
-				slog.Error("error creating room:", err.Error())
-				break
-			}
-			break
 		case JoinRoom:
 		case LeaveRoom:
 		case SendMessage:
@@ -120,11 +123,12 @@ func handleConnection(ctx context.Context, db *gorm.DB, cache *redis.Client, con
 				slog.Error("error unmarshalling message:", err.Error())
 				break
 			}
-			_, err = service.CreateMessage(db, sendMessagePayload.Payload.Room, username, sendMessagePayload.Payload.Content)
+			clientMessage, err := service.CreateMessage(db, sendMessagePayload.Payload.Room, username, sendMessagePayload.Payload.Content)
 			if err != nil {
 				slog.Error("error creating message:", err.Error())
 				break
 			}
+			broadcastMessage(clientMessage)
 			break
 		}
 

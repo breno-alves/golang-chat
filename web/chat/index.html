@@ -44,7 +44,9 @@
 
         .message {
             width: 100%;
-            border: 6px solid blue;
+            border-radius: 8px;
+            padding: 8px;
+            border: 1px solid blue;
             margin: 8px;
         }
 
@@ -91,18 +93,12 @@
 
         <div class="sub-container">
             <div class="chat">
+                <!-- CONTAINER TO DISPLAY NEW MESSAGES -->
                 <div class="messages">
-                    <div class="message">
-                        <p>Owner</p>
-                        <p>content</p>
-                    </div>
-                    <div class="message">
-                        <p>Owner</p>
-                        <p>content</p>
-                    </div>
                 </div>
+                <!-- END -->
                 <div>
-                    <input type="text" id="message-box" />
+                    <input type="text" id="message-box"/>
                     <button onclick="sendMessage()">Submit</button>
                 </div>
             </div>
@@ -147,10 +143,10 @@
         }
       ),
     })
-    .then((response) => response.json())
-    .then((data) => {
-      token = data.username;
-    });
+      .then((response) => response.json())
+      .then((data) => {
+        token = data.username;
+      });
   }
 
   function signup() {
@@ -166,10 +162,27 @@
         }
       ),
     })
-    .then((response) => response.json())
-    .then((data) => {
-      token = data.username;
-    });
+      .then((response) => response.json())
+      .then((data) => {
+        token = data.username;
+      });
+  }
+
+  function sendMessage() {
+    let input = document.getElementById("message-box");
+    let message = input.value;
+    ws.send(parseMessage(ACTIONS.SEND_MESSAGE, {content: message, room: currentRoom}));
+    input.value = "";
+  }
+
+  function newMessage(message) {
+    let messageDisplay = document.querySelector(".messages");
+    messageDisplay.insertAdjacentHTML("beforeend", `
+          <div class="message">
+            <p>${message.owner_id}</p>
+            <p>${message.content}</p>
+          </div>
+        `);
   }
 
   function connect() {
@@ -180,8 +193,7 @@
     };
 
     ws.onmessage = function (event) {
-      let messageDisplay = document.getElementById("messages");
-      messageDisplay.innerHTML += `<p>${event.data}</p>`;
+      newMessage(JSON.parse(event.data));
     };
 
     ws.onclose = function () {
@@ -203,12 +215,6 @@
     return JSON.stringify(parsedMessage);
   }
 
-  function sendMessage() {
-    let input = document.getElementById("message-box");
-    let message = input.value;
-    ws.send(parseMessage(ACTIONS.SEND_MESSAGE, { content: message, room: currentRoom }));
-    input.value = "";
-  }
 
   connect();
 </script>

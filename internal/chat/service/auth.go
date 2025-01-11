@@ -1,7 +1,10 @@
 package service
 
 import (
+	"chatroom/api/chat/model"
 	"context"
+	"encoding/json"
+	"fmt"
 	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
 	"time"
@@ -19,9 +22,14 @@ func CheckToken(ctx context.Context, cache *redis.Client, token string) (string,
 	return username, nil
 }
 
-func SetToken(ctx context.Context, cache *redis.Client, username string) (string, error) {
+func SetUserToken(ctx context.Context, cache *redis.Client, user *model.User) (string, error) {
+	payload, err := json.Marshal(user)
+	if err != nil {
+		return "", err
+	}
 	hash := uuid.New().String()
-	err := cache.Set(ctx, hash, username, time.Hour*24).Err()
+	key := fmt.Sprintf("user:%s", hash)
+	err = cache.Set(ctx, key, payload, time.Hour*24).Err()
 	if err != nil {
 		return "", err
 	}
