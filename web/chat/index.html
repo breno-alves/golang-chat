@@ -102,8 +102,8 @@
                     </div>
                 </div>
                 <div>
-                    <input/>
-                    <button>Submit</button>
+                    <input type="text" id="message-box" />
+                    <button onclick="sendMessage()">Submit</button>
                 </div>
             </div>
             <div class="rooms">
@@ -122,8 +122,16 @@
 <!--<div id="messages"></div>-->
 
 <script>
-  // using email as token to simplify project
-  let token = null;
+  const ACTIONS = {
+    CREATE_ROOM: "CREATE_ROOM",
+    JOIN_ROOM: "JOIN_ROOM",
+    LEAVE_ROOM: "LEAVE_ROOM",
+    SEND_MESSAGE: "SEND_MESSAGE"
+  };
+
+  // let token = null;
+  let token = "1435a686-32cc-4227-85cc-deea1928ca7f"
+  let currentRoom = 1;
   let ws = null;
 
   function login() {
@@ -164,7 +172,6 @@
     });
   }
 
-
   function connect() {
     ws = new WebSocket("ws://localhost:8080/ws");
 
@@ -187,14 +194,23 @@
     };
   }
 
+  function parseMessage(action, payload) {
+    let parsedMessage = {
+      action: action,
+      payload: payload,
+      token: token
+    };
+    return JSON.stringify(parsedMessage);
+  }
+
   function sendMessage() {
-    let input = document.getElementById("messageInput");
+    let input = document.getElementById("message-box");
     let message = input.value;
-    ws.send(message);
+    ws.send(parseMessage(ACTIONS.SEND_MESSAGE, { content: message, room: currentRoom }));
     input.value = "";
   }
 
-  // connect();
+  connect();
 </script>
 </body>
 </html>

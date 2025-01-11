@@ -3,13 +3,9 @@ package router
 import (
 	"chatroom/api/chat/handler"
 	"context"
-	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/gorilla/websocket"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
-	"log/slog"
 	"net/http"
 )
 
@@ -32,94 +28,18 @@ func NewRouter(db *gorm.DB, cache *redis.Client) *Router {
 }
 
 func (router *Router) initialize() {
-	router.Ws("/ws", wsHandler)
+
+	// HEALTH ROUTES
+	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
 
 	// AUTH ROUTES
-	router.Post("/auth/login", router.handleRequest(handler.Login))
+	router.Post("/auth/login", router.handleRestRequest(handler.Login))
 
 	// USER ROUTES
-	router.Post("/user", router.handleRequest(handler.SignUp))
-}
+	router.Post("/user", router.handleRestRequest(handler.SignUp))
 
-// Get wraps the router for GET method
-func (router *Router) Get(path string, f func(w http.ResponseWriter, r *http.Request)) {
-	slog.Info(fmt.Sprintf("GET %s", path))
-	router.Router.HandleFunc(path, f).Methods("GET")
-}
-
-// Post wraps the router for POST method
-func (router *Router) Post(path string, f func(w http.ResponseWriter, r *http.Request)) {
-	slog.Info(fmt.Sprintf("POST %s", path))
-	router.Router.HandleFunc(path, f).Methods("POST")
-}
-
-// Put wraps the router for PUT method
-func (router *Router) Put(path string, f func(w http.ResponseWriter, r *http.Request)) {
-	slog.Info(fmt.Sprintf("PUT %s", path))
-	router.Router.HandleFunc(path, f).Methods("PUT")
-}
-
-// Delete wraps the router for DELETE method
-func (router *Router) Delete(path string, f func(w http.ResponseWriter, r *http.Request)) {
-	slog.Info(fmt.Sprintf("DELETE %s", path))
-	router.Router.HandleFunc(path, f).Methods("DELETE")
-}
-
-func (router *Router) Ws(path string, f func(w http.ResponseWriter, r *http.Request)) {
-	router.Router.HandleFunc(path, f)
-}
-
-func (router *Router) handleRequest(handler RequestHandlerFunction) http.HandlerFunc {
-	ctx := context.Background()
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS,PUT")
-		w.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type")
-		w.Header().Set("Content-Type", "application/json")
-		if r.Method == "OPTIONS" {
-			return
-		}
-		handler(ctx, router.Db, router.Cache, w, r)
-	}
-}
-
-func wsHandler(w http.ResponseWriter, r *http.Request) {
-	upgrader := websocket.Upgrader{
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
-	}
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		slog.Error(err.Error())
-		return
-	}
-	defer func() {
-		err := conn.Close()
-		if err != nil {
-			slog.Debug("closing websocket connection")
-		}
-	}()
-
-	for {
-		_, buff, err := conn.ReadMessage()
-		if err != nil {
-			slog.Error(err.Error())
-			break
-		}
-
-		var message WebsocketMessage
-		err = json.Unmarshal(buff, &message)
-		if err != nil {
-			slog.Error(err.Error())
-			break
-		}
-		fmt.Println(message)
-		//
-		//fmt.Printf("Received: %s\\n", message)
-		//if err := conn.WriteMessage(websocket.TextMessage, message); err != nil {
-		//	slog.Error(err.Error())
-		//	break
-		//}
-	}
+	// WS ROUTES
+	router.Ws("/ws", router.handleWsRequest(wsHandler))
 }
