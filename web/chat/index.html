@@ -121,6 +121,7 @@
                 </div>
                 <div class="room-commands">
                     <button onclick="createRoom()">Create Room</button>
+                    <button onclick="leaveRoom()">Leave Room</button>
                 </div>
             </div>
 
@@ -131,12 +132,11 @@
 
 <script>
   const ACTIONS = {
-    LEAVE_ROOM: "LEAVE_ROOM",
     SEND_MESSAGE: "SEND_MESSAGE"
   };
 
   let token = null;
-  let currentRoom = 1;
+  let currentRoom = null;
   let ws = null;
 
   function listRooms() {
@@ -202,7 +202,6 @@
 
   function renderRooms(rooms) {
     let roomsDisplay = document.querySelector("#rooms-list");
-    roomsDisplay.innerHTML = "";
     roomsDisplay.insertAdjacentHTML("beforeend", rooms.reduce((acc, room) => {
       const li = `
         <li>
@@ -220,10 +219,13 @@
   }
 
   function joinRoom(roomId) {
-    // TODO: disconnect from room
+    if (currentRoom) {
+      leaveRoom();
+    }
     currentRoom = roomId;
     connect();
     clearMessages();
+    renderOldMessage();
   }
 
   function createRoom() {
@@ -233,6 +235,19 @@
       .then((response) => response.json())
       .then(() => listRooms())
       .then((rooms) => renderRooms(rooms));
+  }
+
+  function renderOldMessage() {
+    fetch(`http://localhost:8080/messages?room_id=${currentRoom}`, {
+      method: "GET",
+    })
+      .then((response) => response.json())
+      .then((messages) => {
+        messages.map((message) => {
+          renderMessage(message);
+        })
+      })
+
   }
 
   function connect() {
@@ -265,12 +280,21 @@
     return JSON.stringify(parsedMessage);
   }
 
+  function leaveRoom() {
+    console.log("calling leave room..");
+    if (!currentRoom) {
+      alert("you're not in a room.")
+    }
 
-  function init() {
-
+    fetch(`http://localhost:8080/rooms/leave?token=${token}&room_id=${currentRoom}`, {
+      method: "POST",
+    })
+      .then(() => {
+        clearMessages()
+        currentRoom = null;
+        console.log('clear message display and enable button');
+      })
   }
-
-  init();
 </script>
 </body>
 </html>

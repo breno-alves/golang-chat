@@ -75,3 +75,14 @@ func (rr *RoomRepository) GetUsersTokenInRoom(roomId uint) ([]string, error) {
 	}
 	return result, nil
 }
+
+func (rr *RoomRepository) RemoveUserTokenInRoom(roomId, userId uint) error {
+	ctx := context.Background()
+	key := fmt.Sprintf("room:%d:user:%d", roomId, userId)
+	err := rr.cache.Del(ctx, key).Err()
+	if err != nil {
+		slog.Error("failed to remove user token")
+		return err
+	}
+	return nil
+}

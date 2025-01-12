@@ -12,45 +12,43 @@ import (
 const MaxMessagesToReturn = 50
 
 type MessageService struct {
-	UserRepository    *repositories.UserRepository
-	RoomRepository    *repositories.RoomRepository
-	MessageRepository *repositories.MessageRepository
+	userRepository    *repositories.UserRepository
+	roomRepository    *repositories.RoomRepository
+	messageRepository *repositories.MessageRepository
 }
 
 func NewMessageService(db *gorm.DB, cache *redis.Client) *MessageService {
 	return &MessageService{
-		UserRepository:    repositories.NewUserRepository(db, cache),
-		RoomRepository:    repositories.NewRoomRepository(db, cache),
-		MessageRepository: repositories.NewMessageRepository(db, cache),
+		userRepository:    repositories.NewUserRepository(db, cache),
+		roomRepository:    repositories.NewRoomRepository(db, cache),
+		messageRepository: repositories.NewMessageRepository(db, cache),
 	}
 }
 
 func (ms *MessageService) CreateMessage(_ context.Context, roomId uint, username, content string) (*models.Message, error) {
-	user, err := ms.UserRepository.FindByUsername(username)
+	user, err := ms.userRepository.FindByUsername(username)
 	if err != nil {
 		slog.Error("could not find user by username", username)
 		return nil, err
 	}
 
-	room, err := ms.RoomRepository.FindByID(roomId)
+	room, err := ms.roomRepository.FindByID(roomId)
 	if err != nil {
 		slog.Error("could not find room", roomId)
 		return nil, err
 	}
 
-	message, err := ms.MessageRepository.Create(user.Id, room.Id, content)
+	message, err := ms.messageRepository.Create(user.Id, room.Id, content)
 	if err != nil {
 		return nil, err
 	}
 	return message, nil
 }
 
-//func ListMessage(db *gorm.DB, roomId uint) (*[]models.Message, error) {
-//	messages := new([]models.Message)
-//	err := db.Order("created_at desc").Limit(MaxMessagesToReturn).Find(messages, "room_id = ?", roomId).Error
-//	if err != nil {
-//		fmt.Println(err)
-//		return nil, err
-//	}
-//	return messages, nil
-//}
+func (ms *MessageService) ListLastMessagesFromRoom(_ context.Context, roomId uint) (*[]models.Message, error) {
+	messages, err := ms.messageRepository.FindLastMessagesByRoomId(roomId)
+	if err != nil {
+		return nil, err
+	}
+	return messages, nil
+}

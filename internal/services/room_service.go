@@ -64,3 +64,21 @@ func (rs *RoomService) GetCurrentUserTokensInRoom(ctx context.Context) ([]string
 	}
 	return tokens, nil
 }
+
+func (rs *RoomService) RemoveUserTokenInRoom(ctx context.Context) error {
+	room, ok := ctx.Value("room").(*models.Room)
+	if !ok {
+		return fmt.Errorf("room not found in context")
+	}
+
+	user, ok := ctx.Value("user").(*models.User)
+	if !ok {
+		return fmt.Errorf("user not found in context")
+	}
+
+	err := rs.RoomRepository.RemoveUserTokenInRoom(room.Id, user.Id)
+	if err != nil {
+		return err
+	}
+	return nil
+}

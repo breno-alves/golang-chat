@@ -26,3 +26,12 @@ func (mr *MessageRepository) Create(userId, roomId uint, content string) (*model
 	}
 	return message, nil
 }
+
+func (mr *MessageRepository) FindLastMessagesByRoomId(roomId uint) (*[]models.Message, error) {
+	messages := &[]models.Message{}
+	err := mr.db.Limit(50).Find(&messages, "room_id = ?", roomId).Error
+	if err != nil {
+		return nil, err
+	}
+	return messages, nil
+}

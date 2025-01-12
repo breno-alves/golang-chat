@@ -160,7 +160,6 @@ func (h *Handler) handleConnection(ctx context.Context, conn *websocket.Conn) {
 		}
 
 		switch msg.Action {
-		case LeaveRoom:
 		case SendMessage:
 			sendMessagePayload := &WebsocketMessageSendMessage{}
 			err := json.Unmarshal(message, sendMessagePayload)
