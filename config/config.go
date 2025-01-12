@@ -6,17 +6,29 @@ import (
 )
 
 type Config struct {
-	DB    *DBConfig
-	Cache *Cache
+	DB        *DBConfig
+	Cache     *CacheConfig
+	Exchanger *ExchangerConfig
 }
 
-type Cache struct {
+type ExchangerConfig struct {
+	Host string
+}
+
+func (q *ExchangerConfig) Validate() error {
+	if q.Host == "" {
+		return errors.New("queue host is required")
+	}
+	return nil
+}
+
+type CacheConfig struct {
 	Host     string
 	Password string
 	Db       int
 }
 
-func (c *Cache) Validate() error {
+func (c *CacheConfig) Validate() error {
 	if c.Host == "" {
 		return errors.New("cache host is required")
 	}
@@ -74,7 +86,7 @@ func GetConfig() *Config {
 		panic(err)
 	}
 
-	cacheConfig := &Cache{
+	cacheConfig := &CacheConfig{
 		Host:     os.Getenv("REDIS_HOST"),
 		Password: os.Getenv("REDIS_PASS"),
 		Db:       0,
@@ -83,8 +95,17 @@ func GetConfig() *Config {
 	if err != nil {
 		panic(err)
 	}
+
+	exchangerConfig := &ExchangerConfig{
+		Host: os.Getenv("EXCHANGER_HOST"),
+	}
+	err = exchangerConfig.Validate()
+	if err != nil {
+		panic(err)
+	}
 	return &Config{
-		DB:    dbConfig,
-		Cache: cacheConfig,
+		DB:        dbConfig,
+		Cache:     cacheConfig,
+		Exchanger: exchangerConfig,
 	}
 }

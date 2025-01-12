@@ -19,7 +19,6 @@ func NewDB(config *config.Config) *gorm.DB {
 	db, err := gorm.Open(postgres.Open(dns), &gorm.Config{})
 	if err != nil {
 		panic("could not connect to database")
-		return nil
 	}
 
 	return db

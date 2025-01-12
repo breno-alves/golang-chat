@@ -8,6 +8,7 @@ services:
     depends_on:
       - db
       - cache
+      - rabbitmq
     ports:
       - '8080:8080'
 
@@ -30,6 +31,15 @@ services:
     command: redis-server --save 20 1 --loglevel warning
     volumes:
       - cache:/data
+
+  rabbitmq:
+    image: rabbitmq:3.8-management
+    environment:
+      - RABBITMQ_DEFAULT_USER=rabbitmq
+      - RABBITMQ_DEFAULT_PASS=rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
 
 volumes:
   db:

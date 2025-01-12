@@ -21,6 +21,7 @@ require (
 	github.com/joho/godotenv v1.5.1 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/redis/go-redis/v9 v9.7.0 // indirect
+	github.com/streadway/amqp v1.1.0 // indirect
 	golang.org/x/crypto v0.32.0 // indirect
 	golang.org/x/net v0.21.0 // indirect
 	golang.org/x/sync v0.10.0 // indirect
