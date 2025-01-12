@@ -24,8 +24,11 @@ func NewUserRepository(db *gorm.DB, cache *redis.Client) *UserRepository {
 }
 
 func (u *UserRepository) Create(username, password string) (*models.User, error) {
-	user := models.NewUser(username, password)
-	err := u.db.Create(user).Error
+	user, err := models.NewUser(username, password)
+	if err != nil {
+		return nil, err
+	}
+	err = u.db.Create(user).Error
 	if err != nil {
 		return nil, err
 	}

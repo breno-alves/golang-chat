@@ -2,6 +2,8 @@ package models
 
 import (
 	"database/sql"
+	"golang.org/x/crypto/bcrypt"
+	"log/slog"
 	"time"
 )
 
@@ -15,11 +17,16 @@ type User struct {
 	UpdatedAt  time.Time     `json:"updated_at,omitempty"`
 }
 
-func NewUser(username, password string) *User {
+func NewUser(username, password string) (*User, error) {
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
+	if err != nil {
+		slog.Error("error hashing password", err.Error())
+		return nil, err
+	}
 	return &User{
 		Username:  username,
-		Password:  password,
+		Password:  string(hashedPassword),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-	}
+	}, nil
 }

@@ -5,6 +5,7 @@ import (
 	"chatroom/internal/repositories"
 	"context"
 	"github.com/redis/go-redis/v9"
+	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
 
@@ -39,8 +40,11 @@ func (us *UserService) CheckPassword(ctx context.Context, username string, passw
 	if err != nil {
 		return false, err
 	}
-	ok := user.Password == password
-	return ok, nil
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
+	if err != nil {
+		return false, nil
+	}
+	return true, nil
 }
 
 func (us *UserService) SetUserToken(_ context.Context, user *models.User) (string, error) {
