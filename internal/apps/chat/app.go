@@ -7,6 +7,7 @@ import (
 	"chatroom/internal/pkg/cache"
 	"chatroom/internal/pkg/database"
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"log/slog"
@@ -26,19 +27,13 @@ func NewApp() *App {
 }
 
 func (a *App) Initialize() {
-	//pathExecutable, err := os.Executable()
-	//if err != nil {
-	//	panic(err)
-	//}
-	//
-	//dirPathExecutable := filepath.Dir(pathExecutable)
-	//err = godotenv.Load(fmt.Sprintf("%s/.env", dirPathExecutable))
-	//if err != nil {
-	//	panic(err)
-	//}
-
 	logger := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})
 	slog.SetDefault(slog.New(logger))
+
+	err := godotenv.Load(".env")
+	if err != nil {
+		slog.Debug("app did not load .env")
+	}
 
 	a.DB = database.NewDB(config.GetConfig())
 	a.migrate()
