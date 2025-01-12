@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"chatroom/internal/chat/config"
+	"chatroom/config"
 	"github.com/redis/go-redis/v9"
 	"log/slog"
 )

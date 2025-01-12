@@ -1,7 +1,7 @@
-package handler
+package handlers
 
 import (
-	"chatroom/internal/chat/service"
+	"chatroom/internal/services"
 	"context"
 	"encoding/json"
 	"github.com/redis/go-redis/v9"
@@ -12,7 +12,7 @@ import (
 
 func ListRooms(_ context.Context, db *gorm.DB, _ *redis.Client, w http.ResponseWriter, _ *http.Request) {
 	slog.Debug("attempting to list rooms")
-	roomsList, err := service.ListRooms(db)
+	roomsList, err := services.ListRooms(db)
 	if err != nil {
 		slog.Error("could not list rooms: ", err)
 		w.WriteHeader(http.StatusInternalServerError)

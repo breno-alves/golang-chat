@@ -1,7 +1,7 @@
-package handler
+package handlers
 
 import (
-	"chatroom/internal/chat/service"
+	"chatroom/internal/services"
 	"context"
 	"encoding/json"
 	"github.com/redis/go-redis/v9"
@@ -26,7 +26,7 @@ func SignUp(_ context.Context, db *gorm.DB, _ *redis.Client, w http.ResponseWrit
 		return
 	}
 
-	user, err := service.CreateUser(db, body.Username, body.Password)
+	user, err := services.CreateUser(db, body.Username, body.Password)
 	if err != nil {
 		slog.Error("failed to create user", err)
 		w.WriteHeader(http.StatusInternalServerError)

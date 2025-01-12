@@ -1,8 +1,8 @@
 package router
 
 import (
-	"chatroom/api/chat/model"
-	"chatroom/internal/chat/service"
+	"chatroom/internal/models"
+	"chatroom/internal/services"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -61,7 +61,7 @@ func wsHandler(ctx context.Context, db *gorm.DB, cache *redis.Client, w http.Res
 	}
 	ctx = context.WithValue(ctx, "token", token)
 
-	user, err := service.ValidateUserToken(ctx, cache, token)
+	user, err := services.ValidateUserToken(ctx, cache, token)
 	if err != nil {
 		slog.Error("could not validate token")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -77,7 +77,7 @@ func wsHandler(ctx context.Context, db *gorm.DB, cache *redis.Client, w http.Res
 		return
 	}
 
-	room, err := service.FindRoomById(db, uint(roomId))
+	room, err := services.FindRoomById(db, uint(roomId))
 	if err != nil {
 		slog.Error("could not find room")
 		w.WriteHeader(http.StatusNotFound)
@@ -104,7 +104,7 @@ func closeClientConnection(ctx context.Context, conn *websocket.Conn) {
 	}
 }
 
-func broadcastMessage(ctx context.Context, cache *redis.Client, message *model.Message) error {
+func broadcastMessage(ctx context.Context, cache *redis.Client, message *models.Message) error {
 	slog.Debug("broadcasting message")
 	iter := cache.Scan(ctx, 0, fmt.Sprintf("room:%d:user:*", message.RoomId), 0).Iterator()
 	for iter.Next(ctx) {
@@ -130,7 +130,7 @@ func handleConnection(ctx context.Context, db *gorm.DB, cache *redis.Client, con
 	connections[token] = conn
 	mutex.Unlock()
 
-	err := service.JoinRoom(ctx, db, cache)
+	err := services.JoinRoom(ctx, db, cache)
 	if err != nil {
 		slog.Error("error joining room", err.Error())
 		return
@@ -151,7 +151,7 @@ func handleConnection(ctx context.Context, db *gorm.DB, cache *redis.Client, con
 			break
 		}
 
-		user, err := service.ValidateUserToken(ctx, cache, msg.Token)
+		user, err := services.ValidateUserToken(ctx, cache, msg.Token)
 		if err != nil {
 			slog.Error("error checking token:", err.Error())
 			break
@@ -166,7 +166,7 @@ func handleConnection(ctx context.Context, db *gorm.DB, cache *redis.Client, con
 				slog.Error("error unmarshalling message:", err.Error())
 				break
 			}
-			clientMessage, err := service.CreateMessage(db, sendMessagePayload.Payload.Room, user.Username, sendMessagePayload.Payload.Content)
+			clientMessage, err := services.CreateMessage(db, sendMessagePayload.Payload.Room, user.Username, sendMessagePayload.Payload.Content)
 			if err != nil {
 				slog.Error("error creating message:", err.Error())
 				break

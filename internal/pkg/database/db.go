@@ -1,8 +1,7 @@
 package database
 
 import (
-	"chatroom/api/chat/model"
-	"chatroom/internal/chat/config"
+	"chatroom/config"
 	"fmt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -22,9 +21,6 @@ func NewDB(config *config.Config) *gorm.DB {
 		panic("could not connect to database")
 		return nil
 	}
-	err = db.AutoMigrate(&model.Room{}, &model.User{}, &model.Message{})
-	if err != nil {
-		panic(err.Error())
-	}
+
 	return db
 }

@@ -1,7 +1,8 @@
 package router
 
 import (
-	"chatroom/api/chat/handler"
+	"chatroom/internal/handlers"
+	"chatroom/internal/pkg/http/middlewares"
 	"context"
 	"github.com/gorilla/mux"
 	"github.com/redis/go-redis/v9"
@@ -28,6 +29,7 @@ func NewRouter(db *gorm.DB, cache *redis.Client) *Router {
 }
 
 func (router *Router) initialize() {
+	router.Router.Use(middlewares.SetCORS)
 
 	// HEALTH ROUTES
 	router.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -35,13 +37,13 @@ func (router *Router) initialize() {
 	})
 
 	// AUTH ROUTES
-	router.Post("/auth/login", router.handleRestRequest(handler.Login))
+	router.Post("/auth/login", router.handleRestRequest(handlers.Login))
 
 	// USER ROUTES
-	router.Post("/user", router.handleRestRequest(handler.SignUp))
+	router.Post("/user", router.handleRestRequest(handlers.SignUp))
 
 	// ROOM ROUTES
-	router.Get("/rooms", router.handleRestRequest(handler.ListRooms))
+	router.Get("/rooms", router.handleRestRequest(handlers.ListRooms))
 
 	// WS ROUTES
 	router.Ws("/ws", router.handleWsRequest(wsHandler))

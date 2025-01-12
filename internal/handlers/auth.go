@@ -1,7 +1,7 @@
-package handler
+package handlers
 
 import (
-	"chatroom/internal/chat/service"
+	"chatroom/internal/services"
 	"context"
 	"encoding/json"
 	"errors"
@@ -37,7 +37,7 @@ func Login(ctx context.Context, db *gorm.DB, cache *redis.Client, w http.Respons
 		return
 	}
 
-	user, err := service.FindUserByUsername(db, body.Username)
+	user, err := services.FindUserByUsername(db, body.Username)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			slog.Error("user not found", err)
@@ -49,13 +49,13 @@ func Login(ctx context.Context, db *gorm.DB, cache *redis.Client, w http.Respons
 		return
 	}
 
-	if !service.CheckPasswordHash(user.Password, body.Password) {
+	if !services.CheckPasswordHash(user.Password, body.Password) {
 		slog.Warn("password does not match", err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	hash, err := service.SetUserToken(ctx, cache, user)
+	hash, err := services.SetUserToken(ctx, cache, user)
 	if err != nil {
 		slog.Error("failed to set token", err)
 		w.WriteHeader(http.StatusInternalServerError)

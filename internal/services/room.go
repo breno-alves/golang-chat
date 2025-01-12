@@ -1,12 +1,12 @@
-package service
+package services
 
 import (
-	"chatroom/api/chat/model"
+	"chatroom/internal/models"
 	"gorm.io/gorm"
 )
 
-func CreateRoom(db *gorm.DB) (*model.Room, error) {
-	room := model.NewRoom()
+func CreateRoom(db *gorm.DB) (*models.Room, error) {
+	room := models.NewRoom()
 	err := db.Create(room).Error
 	if err != nil {
 		return nil, err
@@ -14,8 +14,8 @@ func CreateRoom(db *gorm.DB) (*model.Room, error) {
 	return room, nil
 }
 
-func ListRooms(db *gorm.DB) (*[]model.Room, error) {
-	rooms := new([]model.Room)
+func ListRooms(db *gorm.DB) (*[]models.Room, error) {
+	rooms := new([]models.Room)
 	err := db.Find(&rooms).Error
 	if err != nil {
 		return nil, err
@@ -23,8 +23,8 @@ func ListRooms(db *gorm.DB) (*[]model.Room, error) {
 	return rooms, nil
 }
 
-func FindRoomById(db *gorm.DB, id uint) (*model.Room, error) {
-	room := new(model.Room)
+func FindRoomById(db *gorm.DB, id uint) (*models.Room, error) {
+	room := new(models.Room)
 	err := db.First(room, "id = ?", id).Error
 	if err != nil {
 		return nil, err

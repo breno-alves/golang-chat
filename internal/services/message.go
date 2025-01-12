@@ -1,7 +1,7 @@
-package service
+package services
 
 import (
-	"chatroom/api/chat/model"
+	"chatroom/internal/models"
 	"fmt"
 	"gorm.io/gorm"
 	"log/slog"
@@ -9,7 +9,7 @@ import (
 
 const MaxMessagesToReturn = 50
 
-func CreateMessage(db *gorm.DB, roomId uint, username, content string) (*model.Message, error) {
+func CreateMessage(db *gorm.DB, roomId uint, username, content string) (*models.Message, error) {
 	user, err := FindUserByUsername(db, username)
 	if err != nil {
 		slog.Error("could not find user by username", username)
@@ -20,7 +20,7 @@ func CreateMessage(db *gorm.DB, roomId uint, username, content string) (*model.M
 		slog.Error("could not find room", roomId)
 		return nil, err
 	}
-	message := model.NewMessage(user.Id, room.Id, content)
+	message := models.NewMessage(user.Id, room.Id, content)
 	err = db.Create(&message).Error
 	if err != nil {
 		return nil, err
@@ -28,8 +28,8 @@ func CreateMessage(db *gorm.DB, roomId uint, username, content string) (*model.M
 	return message, nil
 }
 
-func ListMessage(db *gorm.DB, roomId uint) (*[]model.Message, error) {
-	messages := new([]model.Message)
+func ListMessage(db *gorm.DB, roomId uint) (*[]models.Message, error) {
+	messages := new([]models.Message)
 	err := db.Order("created_at desc").Limit(MaxMessagesToReturn).Find(messages, "room_id = ?", roomId).Error
 	if err != nil {
 		fmt.Println(err)
