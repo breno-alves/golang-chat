@@ -26,6 +26,17 @@ func NewApp() *App {
 }
 
 func (a *App) Initialize() {
+	//pathExecutable, err := os.Executable()
+	//if err != nil {
+	//	panic(err)
+	//}
+	//
+	//dirPathExecutable := filepath.Dir(pathExecutable)
+	//err = godotenv.Load(fmt.Sprintf("%s/.env", dirPathExecutable))
+	//if err != nil {
+	//	panic(err)
+	//}
+
 	logger := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug})
 	slog.SetDefault(slog.New(logger))
 

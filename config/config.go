@@ -1,5 +1,10 @@
 package config
 
+import (
+	"errors"
+	"os"
+)
+
 type Config struct {
 	DB    *DBConfig
 	Cache *Cache
@@ -9,6 +14,13 @@ type Cache struct {
 	Host     string
 	Password string
 	Db       int
+}
+
+func (c *Cache) Validate() error {
+	if c.Host == "" {
+		return errors.New("cache host is required")
+	}
+	return nil
 }
 
 type DBConfig struct {
@@ -21,21 +33,58 @@ type DBConfig struct {
 	Charset  string
 }
 
+func (c *DBConfig) Validate() error {
+	if c.Host == "" {
+		return errors.New("DB host is required")
+	}
+
+	if c.Port == 0 {
+		return errors.New("DB port is required")
+	}
+
+	if c.Username == "" {
+		return errors.New("DB username is required")
+	}
+	if c.Password == "" {
+		return errors.New("DB password is required")
+	}
+
+	if c.Name == "" {
+		return errors.New("DB name is required")
+	}
+
+	if c.Charset == "" {
+		return errors.New("DB charset is required")
+	}
+	return nil
+}
+
 func GetConfig() *Config {
+	dbConfig := &DBConfig{
+		Dialect:  "postgres",
+		Host:     os.Getenv("DB_HOST"),
+		Port:     5432,
+		Username: os.Getenv("DB_USER"),
+		Password: os.Getenv("DB_PASS"),
+		Name:     os.Getenv("DB_NAME"),
+		Charset:  "utf8",
+	}
+	err := dbConfig.Validate()
+	if err != nil {
+		panic(err)
+	}
+
+	cacheConfig := &Cache{
+		Host:     os.Getenv("REDIS_HOST"),
+		Password: os.Getenv("REDIS_PASS"),
+		Db:       0,
+	}
+	err = cacheConfig.Validate()
+	if err != nil {
+		panic(err)
+	}
 	return &Config{
-		DB: &DBConfig{
-			Dialect:  "postgres",
-			Host:     "localhost",
-			Port:     5432,
-			Username: "postgres",
-			Password: "postgres",
-			Name:     "mhe",
-			Charset:  "utf8",
-		},
-		Cache: &Cache{
-			Host:     "localhost:6379",
-			Password: "",
-			Db:       0,
-		},
+		DB:    dbConfig,
+		Cache: cacheConfig,
 	}
 }
