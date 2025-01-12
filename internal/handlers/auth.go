@@ -1,11 +1,8 @@
 package handlers
 
 import (
-	"chatroom/internal/services"
-	"context"
 	"encoding/json"
 	"errors"
-	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 	"log/slog"
 	"net/http"
@@ -26,8 +23,8 @@ type LoginResponse struct {
 // - Add token to redis with user data
 // - Return token or 403
 
-func Login(ctx context.Context, db *gorm.DB, cache *redis.Client, w http.ResponseWriter, r *http.Request) {
-	slog.Debug("attempting to login user")
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 
 	body := new(LoginRequest)
 	err := json.NewDecoder(r.Body).Decode(body)
@@ -37,7 +34,7 @@ func Login(ctx context.Context, db *gorm.DB, cache *redis.Client, w http.Respons
 		return
 	}
 
-	user, err := services.FindUserByUsername(db, body.Username)
+	user, err := h.userService.FindUserByUsername(ctx, body.Username)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			slog.Error("user not found", err)
@@ -49,13 +46,19 @@ func Login(ctx context.Context, db *gorm.DB, cache *redis.Client, w http.Respons
 		return
 	}
 
-	if !services.CheckPasswordHash(user.Password, body.Password) {
+	valid, err := h.userService.CheckPassword(ctx, user.Username, body.Password)
+	if err != nil {
+		slog.Error("failed to check password", err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	if !valid {
 		slog.Warn("password does not match", err)
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
-	hash, err := services.SetUserToken(ctx, cache, user)
+	hash, err := h.userService.SetUserToken(ctx, user)
 	if err != nil {
 		slog.Error("failed to set token", err)
 		w.WriteHeader(http.StatusInternalServerError)

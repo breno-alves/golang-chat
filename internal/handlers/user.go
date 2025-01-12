@@ -1,11 +1,7 @@
 package handlers
 
 import (
-	"chatroom/internal/services"
-	"context"
 	"encoding/json"
-	"github.com/redis/go-redis/v9"
-	"gorm.io/gorm"
 	"log/slog"
 	"net/http"
 )
@@ -15,10 +11,10 @@ type SignUpRequest struct {
 	Password string `json:"password"`
 }
 
-func SignUp(_ context.Context, db *gorm.DB, _ *redis.Client, w http.ResponseWriter, r *http.Request) {
-	slog.Debug("attempting to sign up user")
+func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 
-	body := new(SignUpRequest)
+	body := &SignUpRequest{}
 	err := json.NewDecoder(r.Body).Decode(body)
 	if err != nil {
 		slog.Error("failed to decode body", err)
@@ -26,7 +22,7 @@ func SignUp(_ context.Context, db *gorm.DB, _ *redis.Client, w http.ResponseWrit
 		return
 	}
 
-	user, err := services.CreateUser(db, body.Username, body.Password)
+	user, err := h.userService.CreateUser(ctx, body.Username, body.Password)
 	if err != nil {
 		slog.Error("failed to create user", err)
 		w.WriteHeader(http.StatusInternalServerError)

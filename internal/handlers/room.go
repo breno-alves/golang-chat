@@ -1,23 +1,22 @@
 package handlers
 
 import (
-	"chatroom/internal/services"
-	"context"
 	"encoding/json"
-	"github.com/redis/go-redis/v9"
-	"gorm.io/gorm"
 	"log/slog"
 	"net/http"
 )
 
-func ListRooms(_ context.Context, db *gorm.DB, _ *redis.Client, w http.ResponseWriter, _ *http.Request) {
+func (h *Handler) ListRooms(w http.ResponseWriter, r *http.Request) {
 	slog.Debug("attempting to list rooms")
-	roomsList, err := services.ListRooms(db)
+	ctx := r.Context()
+
+	roomsList, err := h.roomService.FindAll(ctx)
 	if err != nil {
 		slog.Error("could not list rooms: ", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
 	err = json.NewEncoder(w).Encode(roomsList)
 	if err != nil {
 		slog.Error("could not encode rooms: ", err)

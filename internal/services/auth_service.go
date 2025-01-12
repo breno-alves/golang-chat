@@ -2,16 +2,22 @@ package services
 
 import (
 	"chatroom/internal/models"
+	"chatroom/internal/repositories"
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/google/uuid"
 	"github.com/redis/go-redis/v9"
-	"time"
+	"gorm.io/gorm"
 )
 
-func CheckPasswordHash(hash, password string) bool {
-	return hash == password
+type AuthService struct {
+	AuthRepository *repositories.AuthRepository
+}
+
+func NewAuthService(db *gorm.DB, cache *redis.Client) *AuthService {
+	return &AuthService{
+		AuthRepository: repositories.NewAuthRepository(db, cache),
+	}
 }
 
 func ValidateUserToken(ctx context.Context, cache *redis.Client, token string) (*models.User, error) {
@@ -26,18 +32,4 @@ func ValidateUserToken(ctx context.Context, cache *redis.Client, token string) (
 		return nil, err
 	}
 	return user, nil
-}
-
-func SetUserToken(ctx context.Context, cache *redis.Client, user *models.User) (string, error) {
-	payload, err := json.Marshal(user)
-	if err != nil {
-		return "", err
-	}
-	hash := uuid.New().String()
-	key := fmt.Sprintf("user:%s", hash)
-	err = cache.Set(ctx, key, payload, time.Hour*24).Err()
-	if err != nil {
-		return "", err
-	}
-	return hash, nil
 }
