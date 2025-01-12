@@ -4,6 +4,7 @@ import (
 	"chatroom/internal/models"
 	"chatroom/internal/repositories"
 	"context"
+	"fmt"
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
@@ -18,8 +19,10 @@ func NewRoomService(db *gorm.DB, cache *redis.Client) *RoomService {
 	}
 }
 
-func (rs *RoomService) CreateRoom(_ context.Context, title string) (*models.Room, error) {
-	room, err := rs.RoomRepository.Create(title)
+func (rs *RoomService) CreateRoom(ctx context.Context) (*models.Room, error) {
+	user := ctx.Value("user").(*models.User)
+	roomName := fmt.Sprintf("%s's room.", user.Username)
+	room, err := rs.RoomRepository.Create(roomName)
 	if err != nil {
 		return nil, err
 	}

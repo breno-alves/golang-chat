@@ -39,13 +39,13 @@ func (r *Router) initialize() {
 	// AUTH ROUTES
 	r.Post("/auth/login", r.handler.Login)
 
-	//// USER ROUTES
+	// USER ROUTES
 	r.Post("/user", r.handler.SignUp)
 
 	// ROOM ROUTES
 	r.Get("/rooms", r.handler.ListRooms)
+	r.Post("/rooms", r.handler.CreateRoom)
 
-	//
 	// WS ROUTES
 	r.Ws("/ws", r.handler.WebsocketConnect)
 }

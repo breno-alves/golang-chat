@@ -70,3 +70,18 @@ func (u *UserRepository) ValidateUserToken(token string) (*models.User, error) {
 	}
 	return user, nil
 }
+
+func (u *UserRepository) FindUserByToken(token string) (*models.User, error) {
+	ctx := context.Background()
+	key := fmt.Sprintf("user:%s", token)
+	data, err := u.cache.Get(ctx, key).Result()
+	if err != nil {
+		return nil, err
+	}
+	user := &models.User{}
+	err = json.Unmarshal([]byte(data), user)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}

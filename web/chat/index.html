@@ -31,7 +31,6 @@
         }
 
         .chat {
-
             width: 60%;
         }
 
@@ -51,7 +50,7 @@
         }
 
         .rooms {
-            width: 33%;
+            width: 100%;
             height: 100%;
             border: 1px solid grey;
             /*background-color: black;*/
@@ -110,14 +109,22 @@
                     <button onclick="sendMessage()">Submit</button>
                 </div>
             </div>
-            <div class="rooms">
-                <h1>Room list:</h1>
-                <!-- LIST TO DISPLAY ROOMS -->
-                <ol id="rooms-list">
-                    <h1>please log in first</h1>
-                </ol>
-                <!-- END -->
+
+            <div style="width:33%;">
+                <div class="rooms">
+                    <h1>Room list:</h1>
+                    <!-- LIST TO DISPLAY ROOMS -->
+                    <ol id="rooms-list">
+                        <h1>please log in first</h1>
+                    </ol>
+                    <!-- END -->
+                </div>
+                <div class="room-commands">
+                    <button onclick="createRoom()">Create Room</button>
+                </div>
             </div>
+
+
         </div>
     </div>
 </div>
@@ -213,9 +220,19 @@
   }
 
   function joinRoom(roomId) {
+    // TODO: disconnect from room
     currentRoom = roomId;
     connect();
     clearMessages();
+  }
+
+  function createRoom() {
+    fetch(`http://localhost:8080/rooms?token=${token}`, {
+      method: 'POST',
+    })
+      .then((response) => response.json())
+      .then(() => listRooms())
+      .then((rooms) => renderRooms(rooms));
   }
 
   function connect() {

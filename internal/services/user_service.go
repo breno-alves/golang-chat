@@ -58,3 +58,11 @@ func (us *UserService) ValidateUserToken(_ context.Context, token string) (*mode
 	}
 	return user, nil
 }
+
+func (us *UserService) FindUserByToken(_ context.Context, token string) (*models.User, error) {
+	user, err := us.UserRepository.FindUserByToken(token)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
