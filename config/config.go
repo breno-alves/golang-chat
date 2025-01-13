@@ -81,28 +81,28 @@ func GetConfig() *Config {
 		Name:     os.Getenv("DB_NAME"),
 		Charset:  "utf8",
 	}
-	err := dbConfig.Validate()
-	if err != nil {
-		panic(err)
-	}
+	//err := dbConfig.Validate()
+	//if err != nil {
+	//	panic(err)
+	//}
 
 	cacheConfig := &CacheConfig{
 		Host:     os.Getenv("REDIS_HOST"),
 		Password: os.Getenv("REDIS_PASS"),
 		Db:       0,
 	}
-	err = cacheConfig.Validate()
-	if err != nil {
-		panic(err)
-	}
+	//err = cacheConfig.Validate()
+	//if err != nil {
+	//	panic(err)
+	//}
 
 	exchangerConfig := &ExchangerConfig{
 		Host: os.Getenv("EXCHANGER_HOST"),
 	}
-	err = exchangerConfig.Validate()
-	if err != nil {
-		panic(err)
-	}
+	//err = exchangerConfig.Validate()
+	//if err != nil {
+	//	panic(err)
+	//}
 	return &Config{
 		DB:        dbConfig,
 		Cache:     cacheConfig,

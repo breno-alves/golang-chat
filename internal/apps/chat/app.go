@@ -2,27 +2,24 @@ package chat
 
 import (
 	"chatroom/config"
-	"chatroom/internal/apps/chat/consumer"
 	"chatroom/internal/apps/chat/router"
 	"chatroom/internal/models"
+	"chatroom/internal/pkg/broker"
 	"chatroom/internal/pkg/cache"
 	"chatroom/internal/pkg/database"
-	"chatroom/internal/pkg/exchanger"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
-	"github.com/streadway/amqp"
 	"gorm.io/gorm"
 	"log/slog"
 	"os"
 )
 
 type App struct {
-	Router    *mux.Router
-	DB        *gorm.DB
-	Cache     *redis.Client
-	Exchanger *amqp.Connection
-	Consumer  *consumer.Consumer
+	Router *mux.Router
+	DB     *gorm.DB
+	Cache  *redis.Client
+	Broker *broker.Broker
 }
 
 func NewApp() *App {
@@ -40,12 +37,14 @@ func (a *App) Initialize() {
 		slog.Debug("app did not load .env")
 	}
 
+	a.Broker = broker.NewBroker(config.GetConfig())
 	a.Cache = cache.NewCache(config.GetConfig())
 	a.DB = database.NewDB(config.GetConfig())
 	a.migrate()
-	a.Router = router.NewRouter(a.DB, a.Cache).Router
-	a.Exchanger = exchanger.NewExchanger(config.GetConfig())
-	a.Consumer = consumer.NewConsumer(a.Exchanger)
+
+	a.Router = router.NewRouter(a.DB, a.Cache, a.Broker).HttpRouter
+
+	//a.Consumer = consumer.NewConsumer(a.Exchanger)
 }
 
 func (a *App) migrate() {

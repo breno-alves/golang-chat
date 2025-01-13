@@ -1,4 +1,4 @@
-package handlers
+package chat
 
 import (
 	"chatroom/internal/models"
@@ -115,7 +115,11 @@ func (h *Handler) broadcastMessage(ctx context.Context, message *models.Message)
 		return err
 	}
 	for _, token := range tokens {
-		conn := connections[token]
+		conn, ok := connections[token]
+		if !ok {
+			slog.Error("could not find connection for token", token)
+			continue
+		}
 		err := conn.WriteJSON(message)
 		if err != nil {
 			slog.Error("error sending message", err.Error())
