@@ -44,7 +44,6 @@ func (a *App) Initialize() {
 
 	a.Router = router.NewRouter(a.DB, a.Cache, a.Broker).HttpRouter
 
-	//a.Consumer = consumer.NewConsumer(a.Exchanger)
 }
 
 func (a *App) migrate() {

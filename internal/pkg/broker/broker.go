@@ -9,7 +9,7 @@ import (
 
 type Channel struct {
 	queueName string
-	ch        *chan []byte
+	Ch        *chan []byte
 }
 
 type Broker struct {
@@ -23,7 +23,8 @@ func NewBroker(config *config.Config) *Broker {
 		panic(err)
 	}
 	return &Broker{
-		conn: conn,
+		conn:     conn,
+		Channels: make(map[string]*Channel),
 	}
 }
 
@@ -131,12 +132,14 @@ func (broker *Broker) Produce(queueName string, sender *chan []byte) error {
 func (broker *Broker) NewConsumer(queueName string) (*Channel, error) {
 	ch := &Channel{
 		queueName: queueName,
-		ch:        new(chan []byte),
+		Ch:        new(chan []byte),
 	}
-	err := broker.Consume(ch.queueName, ch.ch)
-	if err != nil {
-		return nil, err
-	}
+	go func() {
+		err := broker.Consume(ch.queueName, ch.Ch)
+		if err != nil {
+			slog.Error(fmt.Sprintf("failed to register a consumer: %v", err.Error()))
+		}
+	}()
 	broker.Channels[queueName] = ch
 	return ch, nil
 }
@@ -144,12 +147,14 @@ func (broker *Broker) NewConsumer(queueName string) (*Channel, error) {
 func (broker *Broker) NewProducer(queueName string) (*Channel, error) {
 	ch := &Channel{
 		queueName: queueName,
-		ch:        new(chan []byte),
+		Ch:        new(chan []byte),
 	}
-	err := broker.Produce(ch.queueName, ch.ch)
-	if err != nil {
-		return nil, err
-	}
+	go func() {
+		err := broker.Produce(ch.queueName, ch.Ch)
+		if err != nil {
+			slog.Error(fmt.Sprintf("failed to register a consumer: %v", err.Error()))
+		}
+	}()
 	broker.Channels[queueName] = ch
 	return ch, nil
 }
