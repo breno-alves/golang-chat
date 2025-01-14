@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"golang.org/x/crypto/bcrypt"
 	"log/slog"
 	"time"
@@ -17,7 +18,7 @@ type User struct {
 func NewUser(username, password string) (*User, error) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.MinCost)
 	if err != nil {
-		slog.Error("error hashing password", err.Error())
+		slog.Error(fmt.Sprintf("error hashing password %s", err.Error()))
 		return nil, err
 	}
 	return &User{

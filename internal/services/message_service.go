@@ -34,13 +34,13 @@ func NewMessageService(db *gorm.DB, cache *redis.Client, broker *broker.Broker) 
 func (ms *MessageService) CreateMessage(_ context.Context, roomId uint, username, content string) (*models.Message, error) {
 	user, err := ms.userRepository.FindByUsername(username)
 	if err != nil {
-		slog.Error("could not find user by username", username)
+		slog.Error("could not find user by username")
 		return nil, err
 	}
 
 	room, err := ms.roomRepository.FindByID(roomId)
 	if err != nil {
-		slog.Error("could not find room", roomId)
+		slog.Error("could not find room")
 		return nil, err
 	}
 
@@ -54,7 +54,7 @@ func (ms *MessageService) CreateMessage(_ context.Context, roomId uint, username
 		stockCode := extractStockCode(message.Content)
 		if stockCode != "" {
 			if requestErr := ms.RequestStockPrice(message.RoomId, stockCode); requestErr != nil {
-				slog.Error("could not request stock price", message.RoomId)
+				slog.Error("could not request stock price")
 			}
 		}
 	}

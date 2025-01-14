@@ -54,6 +54,12 @@ services:
       - ...
 ```
 
+### Testing
+
+```
+go test ./... -v
+```
+
 ## TODOs
 
 - [ ] Cache request to external APIs

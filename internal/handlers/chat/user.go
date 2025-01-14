@@ -2,6 +2,7 @@ package chat
 
 import (
 	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 )
@@ -17,21 +18,21 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 	body := &SignUpRequest{}
 	err := json.NewDecoder(r.Body).Decode(body)
 	if err != nil {
-		slog.Error("failed to decode body", err)
+		slog.Error(fmt.Sprintf("failed to decode body %s", err.Error()))
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 
 	user, err := h.UserService.CreateUser(ctx, body.Username, body.Password)
 	if err != nil {
-		slog.Error("failed to create user", err)
+		slog.Error(fmt.Sprintf("failed to create user %s", err.Error()))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
 	err = json.NewEncoder(w).Encode(user)
 	if err != nil {
-		slog.Error("failed to encode response", err)
+		slog.Error(fmt.Sprintf("failed to encode response %s", err.Error()))
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}

@@ -4,6 +4,7 @@ import (
 	"chatroom/internal/models"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/gorilla/websocket"
 	"log/slog"
 	"net/http"
@@ -89,7 +90,7 @@ func (h *Handler) WebsocketConnect(w http.ResponseWriter, r *http.Request) {
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		slog.Error("error upgrading connection", err.Error())
+		slog.Error(fmt.Sprintf("error upgrading connection %s", err.Error()))
 		return
 	}
 	go h.handleConnection(ctx, conn)
@@ -102,7 +103,7 @@ func closeClientConnection(ctx context.Context, conn *websocket.Conn) {
 	mutex.Unlock()
 	err := conn.Close()
 	if err != nil {
-		slog.Error("error closing connection", err.Error())
+		slog.Error(fmt.Sprintf("error closing connection %s", err.Error()))
 	}
 }
 
@@ -116,12 +117,12 @@ func (h *Handler) BroadcastMessage(ctx context.Context, message *models.Message)
 	for _, token := range tokens {
 		conn, ok := connections[token]
 		if !ok {
-			slog.Error("could not find connection for token", token)
+			slog.Error("could not find connection for token")
 			continue
 		}
 		err := conn.WriteJSON(message)
 		if err != nil {
-			slog.Error("error sending message", err.Error())
+			slog.Error(fmt.Sprintf("error sending message %s", err.Error()))
 		}
 	}
 	return nil
@@ -137,28 +138,28 @@ func (h *Handler) handleConnection(ctx context.Context, conn *websocket.Conn) {
 
 	err := h.RoomService.UserJoinRoom(ctx)
 	if err != nil {
-		slog.Error("error joining room", err.Error())
+		slog.Error(fmt.Sprintf("error joining room %s", err.Error()))
 		return
 	}
 
 	for {
 		_, message, err := conn.ReadMessage()
 		if err != nil {
-			slog.Error("error reading message", err.Error())
+			slog.Error(fmt.Sprintf("error reading message %s", err.Error()))
 			break
 		}
 
-		slog.Debug("received message", string(message))
+		slog.Debug(fmt.Sprintf("received message: %s", string(message)))
 
 		msg, err := parseAction(message)
 		if err != nil {
-			slog.Error("error parsing action:", err.Error())
+			slog.Error(fmt.Sprintf("error parsing action: %s", err.Error()))
 			break
 		}
 
 		user, err := h.UserService.ValidateUserToken(ctx, msg.Token)
 		if err != nil {
-			slog.Error("error checking token:", err.Error())
+			slog.Error(fmt.Sprintf("error checking token: %s", err.Error()))
 			break
 		}
 
@@ -167,12 +168,12 @@ func (h *Handler) handleConnection(ctx context.Context, conn *websocket.Conn) {
 			sendMessagePayload := &WebsocketMessageSendMessage{}
 			err := json.Unmarshal(message, sendMessagePayload)
 			if err != nil {
-				slog.Error("error unmarshalling message:", err.Error())
+				slog.Error(fmt.Sprintf("error unmarshalling message: %s", err.Error()))
 				break
 			}
 			clientMessage, err := h.MessageService.CreateMessage(ctx, sendMessagePayload.Payload.Room, user.Username, sendMessagePayload.Payload.Content)
 			if err != nil {
-				slog.Error("error creating message:", err.Error())
+				slog.Error(fmt.Sprintf("error creating message: %s", err.Error()))
 				break
 			}
 			_ = h.BroadcastMessage(ctx, clientMessage)
