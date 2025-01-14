@@ -1,6 +1,6 @@
 # Chat and Bot Apps
 
-This repository contains a Go (Golang) application designed to run seamlessly within a Docker container. Follow this README to set up, build, and run the application.
+This repository contains a Go Chat application designed to run seamlessly within a Docker container. Follow this README to set up, build, and run the application.
 
 ## Prerequisites
 
