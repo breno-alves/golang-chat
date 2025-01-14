@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"chatroom/internal/pkg/broker"
 	"chatroom/internal/services"
 )
 
@@ -9,8 +8,8 @@ type Handler struct {
 	StockService *services.StockService
 }
 
-func NewHandler(broker *broker.Broker) *Handler {
+func NewHandler() *Handler {
 	return &Handler{
-		StockService: services.NewStockService(broker),
+		StockService: services.NewStockService(),
 	}
 }

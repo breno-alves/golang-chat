@@ -16,7 +16,7 @@ type Router struct {
 
 func NewRouter(broker *broker.Broker) *Router {
 	r := &Router{
-		handler: bot.NewHandler(broker),
+		handler: bot.NewHandler(),
 	}
 	go r.InitRmqRouter(broker)
 	return r
