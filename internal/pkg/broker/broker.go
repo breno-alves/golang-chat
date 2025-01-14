@@ -9,7 +9,7 @@ import (
 
 type Channel struct {
 	queueName string
-	Ch        *chan []byte
+	Ch        chan []byte
 }
 
 type Broker struct {
@@ -28,7 +28,7 @@ func NewBroker(config *config.Config) *Broker {
 	}
 }
 
-func (broker *Broker) Consume(queueName string, receiver *chan []byte) error {
+func (broker *Broker) Consume(queueName string, receiver chan []byte) error {
 	if broker.conn.IsClosed() {
 		slog.Error("exchanger connection is closed")
 		return nil
@@ -73,17 +73,18 @@ func (broker *Broker) Consume(queueName string, receiver *chan []byte) error {
 	}
 	forever := make(chan bool)
 	go func() {
-		for d := range msgs {
-			slog.Debug(fmt.Sprintf("Received a message: %s", string(d.Body)))
-			msg := d.Body
-			*receiver <- msg
+		for {
+			select {
+			case msg := <-msgs:
+				receiver <- msg.Body
+			}
 		}
 	}()
 	<-forever
 	return nil
 }
 
-func (broker *Broker) Produce(queueName string, sender *chan []byte) error {
+func (broker *Broker) Produce(queueName string, sender chan []byte) error {
 	if broker.conn.IsClosed() {
 		slog.Error("exchanger connection is closed")
 		return nil
@@ -115,9 +116,8 @@ func (broker *Broker) Produce(queueName string, sender *chan []byte) error {
 
 	for {
 		select {
-		case msg := <-*sender:
-			fmt.Println(string(msg))
-			err := ch.Publish("", "key", false, false, amqp.Publishing{
+		case msg := <-sender:
+			err := ch.Publish("", queueName, false, false, amqp.Publishing{
 				ContentType: "text/plain",
 				Body:        msg,
 			})
@@ -132,7 +132,7 @@ func (broker *Broker) Produce(queueName string, sender *chan []byte) error {
 func (broker *Broker) NewConsumer(queueName string) (*Channel, error) {
 	ch := &Channel{
 		queueName: queueName,
-		Ch:        new(chan []byte),
+		Ch:        make(chan []byte),
 	}
 	go func() {
 		err := broker.Consume(ch.queueName, ch.Ch)
@@ -147,7 +147,7 @@ func (broker *Broker) NewConsumer(queueName string) (*Channel, error) {
 func (broker *Broker) NewProducer(queueName string) (*Channel, error) {
 	ch := &Channel{
 		queueName: queueName,
-		Ch:        new(chan []byte),
+		Ch:        make(chan []byte),
 	}
 	go func() {
 		err := broker.Produce(ch.queueName, ch.Ch)

@@ -4,7 +4,9 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
+	"strconv"
 )
 
 type StocksIntegration struct{}
@@ -24,23 +26,24 @@ func (si *StocksIntegration) GetStockPrice(stockCode string) (float64, error) {
 	if err != nil {
 		return 0, err
 	}
-	si.processCSV(r, header)
-
-	return 0, nil
+	value, err := si.processCSV(r, header)
+	if err != nil {
+		return 0, err
+	}
+	return value, nil
 }
 
-func (si *StocksIntegration) processCSV(reader *csv.Reader, header []string) {
-	fmt.Println(header)
-	for {
-		record, err := reader.Read()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			fmt.Println("Error reading CSV data:", err)
-			break
-		}
-		for i, field := range header {
-			fmt.Printf("%s: %s\n", field, record[i])
-		}
+func (si *StocksIntegration) processCSV(reader *csv.Reader, _ []string) (float64, error) {
+	var closeValue float64
+	record, err := reader.Read()
+	if err == io.EOF {
+	} else if err != nil {
+		slog.Error(fmt.Sprintf("Error reading CSV data: %s", err))
 	}
+	closeValue, err = strconv.ParseFloat(record[6], 8)
+	if err != nil {
+		slog.Error(fmt.Sprintf("Error parsing CSV data: %s", err))
+		return 0, err
+	}
+	return closeValue, nil
 }

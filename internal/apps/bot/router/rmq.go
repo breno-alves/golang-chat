@@ -23,8 +23,16 @@ func (r *Router) GetStockPriceRequest(broker *broker.Broker) {
 	}
 	for {
 		select {
-		case msg := <-*channel.Ch:
-			slog.Debug(fmt.Sprintf("Received a message: %s", string(msg)))
+		case msg := <-channel.Ch:
+			fmt.Println("received bot:", string(msg))
+			value, err := r.handler.StockService.ConsumeGetStockPriceRequest(msg)
+			if err != nil {
+				slog.Error(err.Error())
+			}
+			slog.Debug(fmt.Sprintf("stock value is: %v", value))
+			continue
+		default:
+			continue
 		}
 	}
 }

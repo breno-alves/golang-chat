@@ -17,7 +17,7 @@ type Router struct {
 func NewRouter(db *gorm.DB, cache *redis.Client, broker *broker.Broker) *Router {
 	r := &Router{
 		HttpRouter: mux.NewRouter(),
-		handler:    chat.NewHandler(db, cache),
+		handler:    chat.NewHandler(db, cache, broker),
 	}
 	r.InitHttpRouter()
 	r.InitRmqRouter(broker)

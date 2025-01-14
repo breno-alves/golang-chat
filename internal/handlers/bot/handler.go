@@ -6,11 +6,11 @@ import (
 )
 
 type Handler struct {
-	stockService *services.StockService
+	StockService *services.StockService
 }
 
 func NewHandler(broker *broker.Broker) *Handler {
 	return &Handler{
-		stockService: services.NewStockService(),
+		StockService: services.NewStockService(broker),
 	}
 }
