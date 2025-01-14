@@ -56,9 +56,8 @@ func (rs *RoomService) UserJoinRoom(ctx context.Context) error {
 	return nil
 }
 
-func (rs *RoomService) GetCurrentUserTokensInRoom(ctx context.Context) ([]string, error) {
-	room := ctx.Value("room").(*models.Room)
-	tokens, err := rs.RoomRepository.GetUsersTokenInRoom(room.Id)
+func (rs *RoomService) GetCurrentUserTokensInRoom(_ context.Context, roomId uint) ([]string, error) {
+	tokens, err := rs.RoomRepository.GetUsersTokenInRoom(roomId)
 	if err != nil {
 		return nil, err
 	}

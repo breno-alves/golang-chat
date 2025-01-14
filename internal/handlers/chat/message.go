@@ -15,7 +15,7 @@ func (h *Handler) ListMessages(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	messages, err := h.messageService.ListLastMessagesFromRoom(ctx, uint(roomId))
+	messages, err := h.MessageService.ListLastMessagesFromRoom(ctx, uint(roomId))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return

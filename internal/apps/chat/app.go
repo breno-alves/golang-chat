@@ -7,6 +7,7 @@ import (
 	"chatroom/internal/pkg/broker"
 	"chatroom/internal/pkg/cache"
 	"chatroom/internal/pkg/database"
+	"errors"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	"github.com/redis/go-redis/v9"
@@ -47,8 +48,18 @@ func (a *App) Initialize() {
 }
 
 func (a *App) migrate() {
-	err := a.DB.AutoMigrate(&models.Room{}, &models.User{}, &models.Message{})
+	err := a.DB.AutoMigrate(&models.Room{}, &models.Message{}, &models.User{})
 	if err != nil {
 		panic(err.Error())
+	}
+
+	// Creates bot user if it doesn't exist
+	if errors.Is(a.DB.First(&models.User{}, "username = ?", "bot").Error, gorm.ErrRecordNotFound) {
+		a.DB.Create(&models.User{Username: "bot", Password: "123456"})
+	}
+
+	// Creates first room if it doesn't exists
+	if errors.Is(a.DB.First(&models.Room{}).Error, gorm.ErrRecordNotFound) {
+		a.DB.Create(&models.Room{Title: "First room"})
 	}
 }

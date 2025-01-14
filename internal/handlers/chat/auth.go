@@ -34,7 +34,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.userService.FindUserByUsername(ctx, body.Username)
+	user, err := h.UserService.FindUserByUsername(ctx, body.Username)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			slog.Error("user not found", err)
@@ -46,7 +46,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	valid, err := h.userService.CheckPassword(ctx, user.Username, body.Password)
+	valid, err := h.UserService.CheckPassword(ctx, user.Username, body.Password)
 	if err != nil {
 		slog.Error("failed to check password", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -58,7 +58,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hash, err := h.userService.SetUserToken(ctx, user)
+	hash, err := h.UserService.SetUserToken(ctx, user)
 	if err != nil {
 		slog.Error("failed to set token", err)
 		w.WriteHeader(http.StatusInternalServerError)

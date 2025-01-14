@@ -22,7 +22,7 @@ func (h *Handler) SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.userService.CreateUser(ctx, body.Username, body.Password)
+	user, err := h.UserService.CreateUser(ctx, body.Username, body.Password)
 	if err != nil {
 		slog.Error("failed to create user", err)
 		w.WriteHeader(http.StatusInternalServerError)

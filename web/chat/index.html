@@ -36,9 +36,11 @@
 
         .messages {
             width: 100%;
-            height: 100%;
+            height: 512px;
             border: 3px solid red;
             padding: 32px;
+            overflow: scroll;
+
         }
 
         .message {
@@ -122,6 +124,7 @@
                 <div class="room-commands">
                     <button onclick="createRoom()">Create Room</button>
                     <button onclick="leaveRoom()">Leave Room</button>
+                    <button onclick="refreshRoomList()">Refresh Room List</button>
                 </div>
             </div>
 
@@ -138,6 +141,11 @@
   let token = null;
   let currentRoom = null;
   let ws = null;
+
+  function clearRoomList() {
+    let roomsDisplay = document.querySelector("#rooms-list");
+    roomsDisplay.innerHTML = "";
+  }
 
   function listRooms() {
     return fetch("http://localhost:8080/rooms", {
@@ -194,8 +202,13 @@
     let messageDisplay = document.querySelector(".messages");
     messageDisplay.insertAdjacentHTML("beforeend", `
           <div class="message">
-            <p>${message.owner_id}</p>
-            <p>${message.content}</p>
+              <div>
+                <p><b>User:</b> ${message?.owner?.username}</p>
+                <p>${message.content}</p>
+              </div>
+              <div>
+                <p>${message.created_at}</p>
+              </div>
           </div>
         `);
   }
@@ -216,6 +229,11 @@
   function clearMessages() {
     let messageDisplay = document.querySelector(".messages");
     messageDisplay.innerHTML = "";
+  }
+
+  function refreshRoomList() {
+    clearRoomList()
+    return listRooms().then((rooms) => renderRooms(rooms));
   }
 
   function joinRoom(roomId) {
@@ -290,7 +308,7 @@
       method: "POST",
     })
       .then(() => {
-        clearMessages()
+        clearMessages();
         currentRoom = null;
         console.log('clear message display and enable button');
       })

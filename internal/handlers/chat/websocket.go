@@ -12,7 +12,6 @@ import (
 )
 
 const (
-	LeaveRoom   = "LEAVE_MESSAGE"
 	SendMessage = "SEND_MESSAGE"
 )
 
@@ -65,7 +64,7 @@ func (h *Handler) WebsocketConnect(w http.ResponseWriter, r *http.Request) {
 	}
 	ctx = context.WithValue(ctx, "token", token)
 
-	user, err := h.userService.ValidateUserToken(ctx, token)
+	user, err := h.UserService.ValidateUserToken(ctx, token)
 	if err != nil {
 		slog.Error("could not validate token")
 		w.WriteHeader(http.StatusUnauthorized)
@@ -80,7 +79,7 @@ func (h *Handler) WebsocketConnect(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	room, err := h.roomService.FindByID(ctx, uint(roomId))
+	room, err := h.RoomService.FindByID(ctx, uint(roomId))
 	if err != nil {
 		slog.Error("could not find room")
 		w.WriteHeader(http.StatusNotFound)
@@ -107,10 +106,10 @@ func closeClientConnection(ctx context.Context, conn *websocket.Conn) {
 	}
 }
 
-func (h *Handler) broadcastMessage(ctx context.Context, message *models.Message) error {
+func (h *Handler) BroadcastMessage(ctx context.Context, message *models.Message) error {
 	slog.Debug("broadcasting message")
 
-	tokens, err := h.roomService.GetCurrentUserTokensInRoom(ctx)
+	tokens, err := h.RoomService.GetCurrentUserTokensInRoom(ctx, message.RoomId)
 	if err != nil {
 		return err
 	}
@@ -136,7 +135,7 @@ func (h *Handler) handleConnection(ctx context.Context, conn *websocket.Conn) {
 	connections[token] = conn
 	mutex.Unlock()
 
-	err := h.roomService.UserJoinRoom(ctx)
+	err := h.RoomService.UserJoinRoom(ctx)
 	if err != nil {
 		slog.Error("error joining room", err.Error())
 		return
@@ -157,7 +156,7 @@ func (h *Handler) handleConnection(ctx context.Context, conn *websocket.Conn) {
 			break
 		}
 
-		user, err := h.userService.ValidateUserToken(ctx, msg.Token)
+		user, err := h.UserService.ValidateUserToken(ctx, msg.Token)
 		if err != nil {
 			slog.Error("error checking token:", err.Error())
 			break
@@ -171,12 +170,12 @@ func (h *Handler) handleConnection(ctx context.Context, conn *websocket.Conn) {
 				slog.Error("error unmarshalling message:", err.Error())
 				break
 			}
-			clientMessage, err := h.messageService.CreateMessage(ctx, sendMessagePayload.Payload.Room, user.Username, sendMessagePayload.Payload.Content)
+			clientMessage, err := h.MessageService.CreateMessage(ctx, sendMessagePayload.Payload.Room, user.Username, sendMessagePayload.Payload.Content)
 			if err != nil {
 				slog.Error("error creating message:", err.Error())
 				break
 			}
-			_ = h.broadcastMessage(ctx, clientMessage)
+			_ = h.BroadcastMessage(ctx, clientMessage)
 			break
 		}
 

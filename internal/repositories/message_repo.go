@@ -19,17 +19,21 @@ func NewMessageRepository(db *gorm.DB, cache *redis.Client) *MessageRepository {
 }
 
 func (mr *MessageRepository) Create(userId, roomId uint, content string) (*models.Message, error) {
-	message := models.NewMessage(userId, roomId, content)
-	err := mr.db.Create(message).Error
+	newMessage := models.NewMessage(userId, roomId, content)
+	err := mr.db.Create(newMessage).Error
 	if err != nil {
 		return nil, err
 	}
-	return message, nil
+	err = mr.db.Preload("Owner").Find(&newMessage, "id = ?", newMessage.Id).Error
+	if err != nil {
+		return nil, err
+	}
+	return newMessage, nil
 }
 
 func (mr *MessageRepository) FindLastMessagesByRoomId(roomId uint) (*[]models.Message, error) {
 	messages := &[]models.Message{}
-	err := mr.db.Limit(50).Find(&messages, "room_id = ?", roomId).Error
+	err := mr.db.Preload("Owner").Limit(50).Find(&messages, "room_id = ?", roomId).Error
 	if err != nil {
 		return nil, err
 	}

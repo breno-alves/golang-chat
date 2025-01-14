@@ -2,6 +2,7 @@ package router
 
 import (
 	"chatroom/internal/pkg/broker"
+	"errors"
 	"fmt"
 	"log/slog"
 )
@@ -24,15 +25,27 @@ func (r *Router) GetStockPriceRequest(broker *broker.Broker) {
 	for {
 		select {
 		case msg := <-channel.Ch:
-			fmt.Println("received bot:", string(msg))
-			value, err := r.handler.StockService.ConsumeGetStockPriceRequest(msg)
+			response, err := r.handler.StockService.ConsumeGetStockPrice(msg)
 			if err != nil {
-				slog.Error(err.Error())
+				slog.Error(fmt.Sprintf("error consuming message: %s", err.Error()))
+				continue
 			}
-			slog.Debug(fmt.Sprintf("stock value is: %v", value))
-			continue
-		default:
-			continue
+
+			err = r.SendStockPriceResponse(broker, response)
+			if err != nil {
+				slog.Error(fmt.Sprintf("error sending response: %s", err.Error()))
+				continue
+			}
 		}
 	}
+}
+
+func (r *Router) SendStockPriceResponse(broker *broker.Broker, response []byte) error {
+	channel, ok := broker.Channels[BotResponseQueue]
+	if !ok {
+		slog.Error("could not find broker channel")
+		return errors.New("could not find broker channel")
+	}
+	channel.Ch <- response
+	return nil
 }

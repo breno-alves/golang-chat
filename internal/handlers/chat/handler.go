@@ -8,15 +8,15 @@ import (
 )
 
 type Handler struct {
-	userService    *services.UserService
-	roomService    *services.RoomService
-	messageService *services.MessageService
+	UserService    *services.UserService
+	RoomService    *services.RoomService
+	MessageService *services.MessageService
 }
 
 func NewHandler(db *gorm.DB, cache *redis.Client, broker *broker.Broker) *Handler {
 	return &Handler{
-		userService:    services.NewUserService(db, cache),
-		roomService:    services.NewRoomService(db, cache),
-		messageService: services.NewMessageService(db, cache, broker),
+		UserService:    services.NewUserService(db, cache),
+		RoomService:    services.NewRoomService(db, cache),
+		MessageService: services.NewMessageService(db, cache, broker),
 	}
 }
