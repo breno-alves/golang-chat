@@ -58,7 +58,7 @@ func (a *App) migrate() {
 		a.DB.Create(&models.User{Username: "bot", Password: "123456"})
 	}
 
-	// Creates first room if it doesn't exists
+	// Creates first room if it doesn't exist
 	if errors.Is(a.DB.First(&models.Room{}).Error, gorm.ErrRecordNotFound) {
 		a.DB.Create(&models.Room{Title: "First room"})
 	}
